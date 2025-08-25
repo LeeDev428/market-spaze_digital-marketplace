@@ -52,6 +52,7 @@ require __DIR__.'/customer.php';
 
 // Load authentication routes
 require __DIR__.'/auth.php';
+require __DIR__.'/debug.php';
 
 // Load profile/settings routes (if you have them)
 require __DIR__.'/settings.php';

@@ -55,7 +55,17 @@ export default function Register() {
     return (
         <>
             <Head title="Join MarketSpaze" />
-            <div className="min-h-screen bg-slate-900 text-white overflow-hidden">
+            <style>{`
+                body { 
+                    background: #0f172a !important; 
+                    background-color: #0f172a !important;
+                }
+                html {
+                    background: #0f172a !important;
+                    background-color: #0f172a !important;
+                }
+            `}</style>
+            <div className="fixed inset-0 bg-slate-900 text-white overflow-auto">
                 {/* Background effects */}
                 <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900"></div>
                 <div className="absolute inset-0 opacity-20">

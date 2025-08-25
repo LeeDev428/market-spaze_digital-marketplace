@@ -15,7 +15,7 @@ use App\Http\Controllers\Vendor\VendorServiceController;
 | All routes for vendor functionality
 */
 
-Route::middleware(['auth', 'vendor'])->prefix('vendor')->name('vendor.')->group(function () {
+Route::middleware(['auth', 'verified', 'vendor'])->prefix('vendor')->name('vendor.')->group(function () {
     // Dashboard
     Route::get('/dashboard', [VendorDashboardController::class, 'index'])->name('dashboard');
     

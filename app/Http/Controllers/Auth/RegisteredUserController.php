@@ -34,25 +34,26 @@ class RegisteredUserController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'user_type' => 'required|in:customer,vendor',
         ]);
 
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'role' => 'customer', // Set default role
+            'role' => $request->user_type, // Use the selected user type
         ]);
 
-        // Assign customer role
+        // Assign role
         if (method_exists($user, 'assignRole')) {
-            $user->assignRole('customer');
+            $user->assignRole($request->user_type);
         }
 
         event(new Registered($user));
 
         Auth::login($user);
 
-        // Direct redirect to customer dashboard
-        return redirect()->route('customer.dashboard');
+        // Redirect to email verification notice
+        return redirect()->route('verification.notice');
     }
 }

@@ -16,7 +16,8 @@ return new class extends Migration
             $table->string('name');
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
-            $table->string('password');
+            $table->string('password')->nullable(); // Make password nullable for OAuth users
+            $table->string('google_id')->nullable()->unique(); // Add Google ID for OAuth
             $table->enum('role', ['admin', 'customer', 'vendor', 'rider'])->default('customer'); // Add this line
             $table->boolean('is_activated')->default(true); // Account activation status for admin control
             $table->rememberToken();

@@ -156,4 +156,9 @@
     body {
         @apply bg-background text-foreground;
     }
+    
+    /* Override body background for auth pages */
+    body:has(.auth-page) {
+        @apply bg-transparent;
+    }
 }

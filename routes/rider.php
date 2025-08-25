@@ -14,7 +14,7 @@ use App\Http\Controllers\Rider\RiderNotificationController;
 | All routes for rider/delivery functionality
 */
 
-Route::prefix('rider')->name('rider.')->group(function () {
+Route::middleware(['auth', 'verified'])->prefix('rider')->name('rider.')->group(function () {
     // Dashboard
     Route::get('/dashboard', [RiderDashboardController::class, 'index'])->name('dashboard');
     

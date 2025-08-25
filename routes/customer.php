@@ -11,7 +11,7 @@ use App\Http\Controllers\AppointmentController;
 | All routes for customer functionality
 */
 
-Route::middleware(['auth', 'customer'])->name('customer.')->group(function () {
+Route::middleware(['auth', 'verified', 'customer'])->name('customer.')->group(function () {
     // Dashboard
     Route::get('/dashboard', [CustomerDashboardController::class, 'index'])->name('dashboard');
     

@@ -66,6 +66,7 @@ class RiderRegisterController extends Controller
         // Login the rider using the 'rider' guard
         Auth::guard('rider')->login($rider);
 
-        return redirect()->route('rider.dashboard')->with('success', 'Registration successful! Your account is pending verification.');
+        // Redirect to email verification notice for riders
+        return redirect()->route('verification.notice')->with('success', 'Registration successful! Please verify your email address.');
     }
 }

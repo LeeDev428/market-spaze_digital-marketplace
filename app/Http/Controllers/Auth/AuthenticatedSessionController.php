@@ -21,6 +21,7 @@ class AuthenticatedSessionController extends Controller
         return Inertia::render('auth/login', [
             'canResetPassword' => Route::has('password.request'),
             'status' => $request->session()->get('status'),
+            'resend_verification' => $request->session()->get('resend_verification'),
         ]);
     }
 
@@ -30,6 +31,16 @@ class AuthenticatedSessionController extends Controller
     public function store(LoginRequest $request): RedirectResponse
     {
         $request->authenticate();
+
+        $user = $request->user();
+        
+        // Check if email is verified
+        if (!$user->hasVerifiedEmail()) {
+            Auth::logout();
+            return redirect()->route('login')->withErrors([
+                'email' => 'You must verify your email address before you can login. Please check your email for a verification link.',
+            ])->with('resend_verification', true);
+        }
 
         $request->session()->regenerate();
 
