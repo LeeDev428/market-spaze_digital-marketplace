@@ -27,3 +27,6 @@ Route::get('/appointments/user-history/{email}', [AppointmentController::class, 
 Route::get('/test-history/{email}', function ($email) {
     return (new AppointmentController())->getUserHistory($email);
 });
+
+// Include Messages API routes
+require __DIR__.'/messages.php';

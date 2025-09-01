@@ -45,8 +45,24 @@ Route::middleware(['auth', 'verified', 'customer'])->name('customer.')->group(fu
     Route::put('/reviews/{review}', [CustomerDashboardController::class, 'updateReview'])->name('reviews.update');
     
     // Notifications
-    Route::get('/notifications', [CustomerDashboardController::class, 'notifications'])->name('notifications');
+    Route::get('/notifications', function () {
+        return inertia('Notifications/Index', [
+            'notifications' => []
+        ]);
+    })->name('notifications');
     Route::patch('/notifications/{notification}/read', [CustomerDashboardController::class, 'markNotificationAsRead'])->name('notifications.read');
+    
+    // Payments
+    Route::get('/payments', function () {
+        return inertia('Payments/Index', [
+            'payments' => []
+        ]);
+    })->name('payments');
+    
+    // Messages
+    Route::get('/messages', function () {
+        return inertia('Messages/Index');
+    })->name('messages');
     
     // Support
     Route::get('/support', [CustomerDashboardController::class, 'support'])->name('support');

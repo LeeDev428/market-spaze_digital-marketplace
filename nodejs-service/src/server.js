@@ -4,12 +4,6 @@ const http = require('http');
 const socketIo = require('socket.io');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
-const path = require('path');
-
-// Import routes
-const messageRoutes = require('./routes/messages');
 
 // Initialize Express app
 const app = express();
@@ -18,7 +12,7 @@ const server = http.createServer(app);
 // Initialize Socket.IO with CORS
 const io = socketIo(server, {
   cors: {
-    origin: process.env.CORS_ORIGIN.split(','),
+    origin: ["http://localhost:3000", "http://localhost:8000"],
     methods: ["GET", "POST"],
     credentials: true
   }
@@ -34,29 +28,20 @@ mongoose.connect(process.env.MONGODB_URI, {
 })
 .catch((error) => {
   console.error('❌ MongoDB connection error:', error);
-  process.exit(1);
+  console.log('⚠️  Continuing without MongoDB connection...');
 });
 
 // Middleware
-app.use(helmet());
 app.use(cors({
-  origin: process.env.CORS_ORIGIN.split(','),
+  origin: ["http://localhost:3000", "http://localhost:8000"],
   credentials: true
 }));
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS),
-  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS),
-  message: 'Too many requests from this IP, please try again later.'
-});
-app.use('/api/', limiter);
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
-// Serve uploaded files
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+// Import routes
+const messageRoutes = require('./routes/messages');
 
 // Make io available to routes
 app.use((req, res, next) => {
@@ -93,6 +78,12 @@ io.on('connection', (socket) => {
     console.log(`👋 User ${socket.id} left conversation ${conversationId}`);
   });
 
+  // Handle new messages
+  socket.on('send_message', (data) => {
+    console.log('📨 New message:', data);
+    socket.to(`conversation_${data.conversationId}`).emit('new_message', data);
+  });
+
   // Handle typing indicators
   socket.on('typing_start', (data) => {
     socket.to(`conversation_${data.conversationId}`).emit('user_typing', {
@@ -109,20 +100,6 @@ io.on('connection', (socket) => {
     });
   });
 
-  // Handle user presence
-  socket.on('update_presence', (data) => {
-    socket.broadcast.emit('user_presence_updated', {
-      userId: data.userId,
-      status: data.status,
-      lastSeen: new Date()
-    });
-  });
-
-  // Handle message reactions
-  socket.on('message_reaction', (data) => {
-    socket.to(`conversation_${data.conversationId}`).emit('reaction_added', data);
-  });
-
   // Handle disconnection
   socket.on('disconnect', () => {
     console.log('👤 User disconnected:', socket.id);
@@ -132,13 +109,6 @@ io.on('connection', (socket) => {
 // Error handling middleware
 app.use((error, req, res, next) => {
   console.error('Error:', error);
-  
-  if (error instanceof multer.MulterError) {
-    if (error.code === 'LIMIT_FILE_SIZE') {
-      return res.status(400).json({ error: 'File too large' });
-    }
-  }
-  
   res.status(500).json({ 
     error: process.env.NODE_ENV === 'production' 
       ? 'Internal server error' 
@@ -152,11 +122,11 @@ app.use('*', (req, res) => {
 });
 
 // Start server
-const PORT = process.env.PORT || 3001;
-server.listen(PORT, () => {
+const PORT = process.env.PORT || 3002;
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Messaging service running on port ${PORT}`);
   console.log(`📡 WebSocket server ready`);
-  console.log(`🌍 Environment: ${process.env.NODE_ENV}`);
+  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
 });
 
 // Graceful shutdown

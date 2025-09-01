@@ -1,0 +1,7 @@
+{
+  "sender_id": 1,
+  "sender_name": "Test User",
+  "recipient_id": 2,
+  "recipient_name": "Test Vendor",
+  "content": "Test message from curl"
+}

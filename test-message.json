@@ -1,0 +1,9 @@
+{
+  "sender_id": 1,
+  "sender_type": "customer",
+  "sender_name": "Test User",
+  "recipient_id": 2,
+  "recipient_type": "vendor", 
+  "recipient_name": "Test Vendor",
+  "content": "Hello, this is a test message!"
+}
