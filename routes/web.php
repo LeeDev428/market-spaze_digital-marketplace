@@ -3,6 +3,9 @@
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 
+// Include test auth route
+require __DIR__.'/test-auth.php';
+
 /*
 |--------------------------------------------------------------------------
 | Web Routes

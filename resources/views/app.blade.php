@@ -32,7 +32,10 @@
 
         <title inertia>{{ config('app.name', 'Laravel') }}</title>
 
-       <link rel="icon" href="/img/marketspaze_favicon.png" type="image/png">
+        <link rel="icon" href="/img/marketspaze_favicon.png" type="image/png">
+        
+        <!-- CSRF Token -->
+        <meta name="csrf-token" content="{{ csrf_token() }}">
 
 
         <link rel="preconnect" href="https://fonts.bunny.net">

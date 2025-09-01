@@ -58,7 +58,8 @@ export default function Messages() {
                 headers: {
                     'Accept': 'application/json',
                     'Content-Type': 'application/json',
-                }
+                },
+                credentials: 'same-origin' // Include session cookies
             });
             
             const data = await response.json();
@@ -90,6 +91,7 @@ export default function Messages() {
                     'Content-Type': 'application/json',
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
                 },
+                credentials: 'same-origin', // Important: Include session cookies
                 body: JSON.stringify({
                     recipient_id: parseInt(recipientId),
                     recipient_type: recipientType,
