@@ -3,9 +3,12 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Mail\VerificationCodeMail;
+use App\Models\User;
+use App\Services\VerificationCodeService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\Mail;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -32,10 +35,25 @@ class PasswordResetLinkController extends Controller
             'email' => 'required|email',
         ]);
 
-        Password::sendResetLink(
-            $request->only('email')
-        );
+        // Check if user exists
+        $user = User::where('email', $request->email)->first();
+        
+        if ($user) {
+            // Generate and send 6-digit verification code for password reset using Redis
+            $verificationService = new VerificationCodeService();
+            $code = $verificationService->generateCode($request->email, 'password_reset');
+            
+            Mail::to($request->email)->send(
+                new VerificationCodeMail($code, 'password_reset', $user->name)
+            );
+            
+            // Store email in session for the verification page
+            $request->session()->put('password_reset_email', $request->email);
+            
+            return redirect()->route('password.code.form')->with('status', 'A 6-digit password reset code has been sent to your email.');
+        }
 
-        return back()->with('status', __('A reset link will be sent if the account exists.'));
+        // For security, don't reveal if email exists or not
+        return back()->with('status', 'If an account with that email exists, a 6-digit reset code will be sent.');
     }
 }

@@ -18,14 +18,52 @@ use Inertia\Response;
 class NewPasswordController extends Controller
 {
     /**
-     * Show the password reset page.
+     * Show the password reset page after code verification.
      */
-    public function create(Request $request): Response
+    public function showResetForm(Request $request)
     {
+        $email = $request->session()->get('email');
+        $codeVerified = $request->session()->get('code_verified');
+        
+        if (!$email || !$codeVerified) {
+            return redirect()->route('password.request');
+        }
+        
         return Inertia::render('auth/reset-password', [
-            'email' => $request->email,
-            'token' => $request->route('token'),
+            'email' => $email,
+            'code_verified' => true,
         ]);
+    }
+
+    /**
+     * Handle password reset after code verification.
+     */
+    public function updatePassword(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'email' => 'required|email',
+            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+        ]);
+
+        $user = User::where('email', $request->email)->first();
+        
+        if (!$user) {
+            throw ValidationException::withMessages([
+                'email' => ['User not found.'],
+            ]);
+        }
+
+        $user->forceFill([
+            'password' => Hash::make($request->password),
+            'remember_token' => Str::random(60),
+        ])->save();
+
+        event(new PasswordReset($user));
+
+        // Clear the session data
+        $request->session()->forget(['email', 'code_verified', 'password_reset_email']);
+
+        return redirect()->route('login')->with('status', 'Password updated successfully! Please log in with your new password.');
     }
 
     /**

@@ -3,12 +3,15 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Mail\VerificationCodeMail;
 use App\Models\User;
+use App\Services\VerificationCodeService;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rules;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -41,19 +44,25 @@ class RegisteredUserController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'role' => $request->user_type, // Use the selected user type
+            'role' => $request->user_type,
+            // Don't set email_verified_at here - let them verify with code
         ]);
 
-        // Assign role
-        if (method_exists($user, 'assignRole')) {
-            $user->assignRole($request->user_type);
-        }
+        // Generate and send 6-digit verification code using Redis
+        $verificationService = new VerificationCodeService();
+        $code = $verificationService->generateCode($request->email, 'email_verification');
+        
+        Mail::to($request->email)->send(
+            new VerificationCodeMail($code, 'email_verification', $request->name)
+        );
 
         event(new Registered($user));
-
         Auth::login($user);
 
-        // Redirect to email verification notice
-        return redirect()->route('verification.notice');
+        // Store email in session for verification page
+        session(['email' => $request->email]);
+
+        // Redirect to code verification page instead of verification notice
+        return redirect()->route('verification.code.form');
     }
 }

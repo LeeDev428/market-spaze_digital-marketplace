@@ -4,7 +4,18 @@ import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
-import { BookOpen, Folder, LayoutGrid, CalendarCheck  } from 'lucide-react';
+import { 
+    BookOpen, 
+    Folder, 
+    LayoutGrid, 
+    CalendarCheck, 
+    History, 
+    Bell, 
+    CreditCard, 
+    MessageSquare, 
+    Heart, 
+    User 
+} from 'lucide-react';
 import AppLogo from './app-logo';
 
 const mainNavItems: NavItem[] = [
@@ -13,16 +24,40 @@ const mainNavItems: NavItem[] = [
         href: '/dashboard',
         icon: LayoutGrid,
     },
-
-     {
+    {
         title: 'Appointments',
         href: '/appointments',
-        icon: CalendarCheck ,
+        icon: CalendarCheck,
     },
-         {
+    {
         title: 'History',
         href: '/history',
-        icon: CalendarCheck ,
+        icon: History,
+    },
+    {
+        title: 'Notifications',
+        href: '/notifications',
+        icon: Bell,
+    },
+    {
+        title: 'Payments/Billing',
+        href: '/payments',
+        icon: CreditCard,
+    },
+    {
+        title: 'Messages',
+        href: '/messages',
+        icon: MessageSquare,
+    },
+    {
+        title: 'Favorites',
+        href: '/favorites',
+        icon: Heart,
+    },
+    {
+        title: 'Profile',
+        href: '/profile',
+        icon: User,
     },
 ];
 

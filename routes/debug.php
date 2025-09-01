@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
 
 Route::get('/debug-google', function() {
     return response()->json([
@@ -12,3 +13,19 @@ Route::get('/debug-google', function() {
         'full_url' => request()->fullUrl(),
     ]);
 })->name('debug.google');
+
+Route::get('/debug-user-verification', function() {
+    $user = Auth::user();
+    if (!$user) {
+        return response()->json(['error' => 'Not authenticated']);
+    }
+    
+    return response()->json([
+        'user_id' => $user->id,
+        'email' => $user->email,
+        'email_verified_at' => $user->email_verified_at,
+        'email_verified_at_timestamp' => $user->email_verified_at ? $user->email_verified_at->toDateTimeString() : null,
+        'google_id' => $user->google_id ?? null,
+        'current_time' => now()->toDateTimeString(),
+    ]);
+})->name('debug.user.verification');

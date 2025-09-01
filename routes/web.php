@@ -53,9 +53,16 @@ require __DIR__.'/customer.php';
 // Load authentication routes
 require __DIR__.'/auth.php';
 require __DIR__.'/debug.php';
+require __DIR__.'/test-history.php';
 
 // Load profile/settings routes (if you have them)
 require __DIR__.'/settings.php';
+
+// History routes - accessible by all authenticated users
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/history', [\App\Http\Controllers\HistoryController::class, 'index'])->name('history.index');
+    Route::get('/history/{appointment}', [\App\Http\Controllers\HistoryController::class, 'show'])->name('history.show');
+});
 
 // Test route for rider authentication
 Route::get('/test-rider-auth', function () {

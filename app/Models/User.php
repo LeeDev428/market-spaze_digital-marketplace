@@ -50,6 +50,26 @@ class User extends Authenticatable implements MustVerifyEmail
         ];
     }
 
+    /**
+     * Override to disable old email verification links
+     * We use 6-digit codes instead
+     */
+    public function sendEmailVerificationNotification()
+    {
+        // Do nothing - we use 6-digit codes instead of email links
+        return;
+    }
+
+    /**
+     * Override to disable password reset links  
+     * We use 6-digit codes instead
+     */
+    public function sendPasswordResetNotification($token)
+    {
+        // Do nothing - we use 6-digit codes instead of email links
+        return;
+    }
+
     public function rider()
     {
         return $this->hasOne(Rider::class);
