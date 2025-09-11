@@ -40,36 +40,29 @@ export default function Login({ status, canResetPassword, resend_verification }:
     return (
         <>
             <Head title="Sign in to MarketSpaze" />
-            <style>{`
-                body { 
-                    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%) !important; 
-                    min-height: 100vh !important;
-                    margin: 0 !important;
-                }
-                html {
-                    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%) !important;
-                    min-height: 100vh !important;
-                }
-            `}</style>
             
-            <div className="min-h-screen flex items-center justify-center p-4" style={{
-                background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%)'
-            }}>
-                <div className="flex bg-white rounded-2xl shadow-2xl overflow-hidden max-w-4xl w-full h-[600px]">
+            <div className="min-h-screen flex items-center justify-center bg-slate-900">
+                <div className="flex bg-white rounded-2xl shadow-xl overflow-hidden max-w-4xl w-full min-h-[650px]">
                     {/* Left Side - Login Form */}
-                    <div className="w-full md:w-3/5 p-6 flex flex-col">
-                        <div className="text-center mb-6">
-                            <h2 className="text-2xl font-bold text-gray-800 mb-1">Login to Your Account</h2>
-                            <p className="text-gray-600 text-sm">Login using social networks</p>
+                    <div className="w-full md:w-1/2 p-10 flex flex-col justify-center bg-white">
+                        <div className="mb-8">
+                            <div className="flex items-center mb-6">
+                                <img src="/img/marketspazemainlogo.png" alt="MarketSpaze" className="h-8 w-auto" />
+                                <span className="ml-2 text-xl font-bold text-gray-800">MarketSpaze</span>
+                            </div>
+                            <h2 className="text-3xl font-bold text-gray-900 mb-2">Sign in</h2>
+                            <p className="text-gray-500">Don't have an account? 
+                                <Link href="/register" className="text-green-600 hover:text-green-700 font-semibold ml-1">Create now</Link>
+                            </p>
                         </div>
 
                         {/* Social Login */}
-                        <div className="mb-4">
+                        <div className="mb-6">
                             <a
                                 href={route('google.redirect')}
-                                className="w-full flex items-center justify-center px-3 py-2 border border-gray-300 rounded-lg shadow-sm bg-white hover:bg-gray-50 transition-colors text-gray-700 font-medium text-sm"
+                                className="w-full flex items-center justify-center px-4 py-3 border border-gray-300 rounded-lg shadow-sm bg-white hover:bg-gray-50 transition-colors text-gray-700 font-medium text-sm"
                             >
-                                <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
+                                <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
                                     <path fill="#4285f4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                                     <path fill="#34a853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
                                     <path fill="#fbbc04" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
@@ -79,12 +72,12 @@ export default function Login({ status, canResetPassword, resend_verification }:
                             </a>
                         </div>
 
-                        <div className="relative mb-4">
+                        <div className="relative mb-6">
                             <div className="absolute inset-0 flex items-center">
-                                <div className="w-full border-t border-gray-300"></div>
+                                <div className="w-full border-t border-gray-200"></div>
                             </div>
-                            <div className="relative flex justify-center text-xs">
-                                <span className="bg-white px-2 text-gray-500">or</span>
+                            <div className="relative flex justify-center text-sm">
+                                <span className="bg-white px-4 text-gray-500">or</span>
                             </div>
                         </div>
 
@@ -218,10 +211,8 @@ export default function Login({ status, canResetPassword, resend_verification }:
                     </div>
 
                     {/* Right Side - Welcome Panel */}
-                    <div className="hidden md:flex md:w-2/5 items-center justify-center p-6" style={{
-                        background: 'linear-gradient(135deg, #14b8a6 0%, #0891b2 50%, #3b82f6 100%)'
-                    }}>
-                        <div className="text-center text-white">
+                    <div className="hidden md:flex md:w-1/2 bg-gradient-to-br from-teal-400 to-blue-500 text-white flex-col justify-center items-center p-10">
+                        <div className="text-center">
                             <div className="mb-6">
                                 <img
                                     src="/img/marketspazemainlogo.png"
@@ -230,12 +221,12 @@ export default function Login({ status, canResetPassword, resend_verification }:
                                 />
                                 <h1 className="text-3xl font-bold mb-2">New Here?</h1>
                             </div>
-                            <p className="text-base mb-6 opacity-90">
+                            <p className="text-lg mb-6 opacity-90">
                                 Sign up and discover a great amount of new opportunities!
                             </p>
                             <Link
                                 href="/register"
-                                className="inline-block bg-white text-teal-600 font-semibold px-6 py-2.5 rounded-full hover:bg-gray-100 transition-colors shadow-lg text-sm"
+                                className="inline-block bg-white text-teal-600 font-semibold px-8 py-3 rounded-full hover:bg-gray-100 transition-colors shadow-lg"
                             >
                                 Sign Up
                             </Link>
