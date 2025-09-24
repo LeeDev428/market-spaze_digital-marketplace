@@ -7,6 +7,7 @@ use App\Mail\VerificationCodeMail;
 use App\Services\VerificationCodeService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 
 class EmailVerificationNotificationController extends Controller
@@ -16,11 +17,12 @@ class EmailVerificationNotificationController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
-        if ($request->user()->hasVerifiedEmail()) {
+        // Get user from appropriate guard
+        $user = $request->user() ?: Auth::guard('rider')->user();
+        
+        if ($user && $user->hasVerifiedEmail()) {
             return redirect()->intended(route('dashboard', absolute: false));
         }
-
-        $user = $request->user();
         
         // Generate and send 6-digit verification code instead of email link using Redis
         $verificationService = new VerificationCodeService();
