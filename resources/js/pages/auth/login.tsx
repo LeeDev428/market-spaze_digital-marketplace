@@ -181,15 +181,7 @@ export default function Login({ status, canResetPassword, resend_verification }:
                                     )}
                                 </div>
 
-                                <div className="text-center text-xs text-gray-600 pt-2">
-                                    Don't have an account?{' '}
-                                    <Link
-                                        href="/register"
-                                        className="text-orange-600 hover:text-orange-800 font-medium"
-                                    >
-                                        Sign up
-                                    </Link>
-                                </div>
+                               
 
                                 {/* Submit button */}
                                 <button
@@ -211,7 +203,7 @@ export default function Login({ status, canResetPassword, resend_verification }:
                     </div>
 
                     {/* Right Side - Welcome Panel */}
-                    <div className="hidden md:flex md:w-1/2 bg-gradient-to-br from-teal-400 to-blue-500 text-white flex-col justify-center items-center p-10">
+                    <div className="hidden md:flex md:w-1/2 bg-gradient-to-br from-teal-800 to-blue-900 text-white flex-col justify-center items-center p-10">
                         <div className="text-center">
                             <div className="mb-6">
                                 <img
