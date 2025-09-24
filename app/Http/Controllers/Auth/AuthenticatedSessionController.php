@@ -32,19 +32,29 @@ class AuthenticatedSessionController extends Controller
     {
         $request->authenticate();
 
-        $user = $request->user();
+        $userType = $request->input('user_type');
         
-        // Check if email is verified
-        if (!$user->hasVerifiedEmail()) {
-            Auth::logout();
+        // Get the user from the appropriate guard
+        if ($userType === 'rider') {
+            $user = Auth::guard('rider')->user();
+        } else {
+            $user = $request->user();
+        }
+        
+        // Check if email is verified (only for users that implement MustVerifyEmail)
+        if ($user && method_exists($user, 'hasVerifiedEmail') && !$user->hasVerifiedEmail()) {
+            // Logout from the appropriate guard
+            if ($userType === 'rider') {
+                Auth::guard('rider')->logout();
+            } else {
+                Auth::logout();
+            }
             return redirect()->route('login')->withErrors([
                 'email' => 'You must verify your email address before you can login. Please check your email for a verification link.',
             ])->with('resend_verification', true);
         }
 
         $request->session()->regenerate();
-
-        $userType = $request->input('user_type');
 
         // Redirect based on user type
         switch ($userType) {
