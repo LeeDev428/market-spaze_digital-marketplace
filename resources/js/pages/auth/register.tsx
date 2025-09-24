@@ -56,7 +56,7 @@ export default function Register() {
             <div className="min-h-screen flex items-center justify-center bg-slate-900">
                 <div className="flex bg-white rounded-2xl shadow-xl overflow-hidden max-w-4xl w-full min-h-[650px]">
                     {/* Left Side - Info Panel */}
-                    <div className="hidden md:flex md:w-1/2 bg-gradient-to-br from-teal-400 to-blue-500 text-white flex-col justify-center items-center p-10">
+                    <div className="hidden md:flex md:w-1/2 bg-gradient-to-br from-teal-800 to-blue-900 text-white flex-col justify-center items-center p-10">
                         <div className="text-center">
                             <div className="mb-6">
                                 <img
