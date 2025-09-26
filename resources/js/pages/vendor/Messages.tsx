@@ -74,17 +74,32 @@ export default function Messages({ auth }: MessagesProps) {
         // Listen for new messages
         socket.on('new_message', (message: Message) => {
             console.log('📨 New message received:', message);
+            console.log('🔍 Current vendor ID:', auth.user.id);
+            console.log('🔍 Message sender:', message.sender.user_id, message.sender.name);
+            console.log('🔍 Message recipient:', message.recipient.user_id, message.recipient.name);
+            console.log('🔍 Selected conversation:', selectedConversation);
             
-            // Add message to current conversation if it's open
-            if (selectedConversation && 
-                (message.sender.user_id === selectedConversation || 
-                 message.recipient.user_id === selectedConversation)) {
-                setMessages(prev => [...prev, message]);
-                scrollToBottom();
-            }
+            // Check if this message is for this vendor
+            const isForThisVendor = message.recipient.user_id === auth.user.id || message.sender.user_id === auth.user.id;
+            
+            if (isForThisVendor) {
+                console.log('✅ Message is for this vendor');
+                
+                // Add message to current conversation if it's open
+                if (selectedConversation && 
+                    (message.sender.user_id === selectedConversation || 
+                     message.recipient.user_id === selectedConversation)) {
+                    console.log('➕ Adding message to current conversation');
+                    setMessages(prev => [...prev, message]);
+                    scrollToBottom();
+                }
 
-            // Update conversation list
-            updateConversationsList();
+                // Update conversation list
+                console.log('🔄 Updating conversations list');
+                updateConversationsList();
+            } else {
+                console.log('❌ Message is not for this vendor');
+            }
         });
 
         // Listen for message sent confirmation
@@ -140,15 +155,21 @@ export default function Messages({ auth }: MessagesProps) {
 
     const loadConversations = async () => {
         try {
+            console.log('🔄 Loading conversations for vendor:', auth.user.id);
             const response = await fetch(`http://127.0.0.1:3003/api/messages/conversations/${auth.user.id}`);
             const data = await response.json();
             
+            console.log('📋 Conversations response:', data);
+            
             if (data.success) {
                 setConversations(data.conversations);
+                console.log('✅ Loaded conversations:', data.conversations.length);
+            } else {
+                console.error('❌ Failed to load conversations:', data);
             }
             setLoading(false);
         } catch (error) {
-            console.error('Failed to load conversations:', error);
+            console.error('❌ Failed to load conversations:', error);
             setLoading(false);
         }
     };
@@ -168,12 +189,16 @@ export default function Messages({ auth }: MessagesProps) {
 
     const loadConversation = async (userId: number) => {
         try {
+            console.log('💬 Loading conversation between vendor', auth.user.id, 'and user', userId);
             setSelectedConversation(userId);
             const response = await fetch(`http://127.0.0.1:3003/api/messages/conversation/${auth.user.id}/${userId}`);
             const data = await response.json();
             
+            console.log('📨 Conversation messages response:', data);
+            
             if (data.success) {
                 setMessages(data.messages);
+                console.log('✅ Loaded messages:', data.messages.length);
                 
                 // Mark messages as read
                 const unreadMessages = data.messages
@@ -181,14 +206,17 @@ export default function Messages({ auth }: MessagesProps) {
                     .map((msg: Message) => msg._id);
                 
                 if (unreadMessages.length > 0 && socketRef.current) {
+                    console.log('👁️ Marking messages as read:', unreadMessages);
                     socketRef.current.emit('mark_as_read', {
                         messageIds: unreadMessages,
                         userId: auth.user.id
                     });
                 }
+            } else {
+                console.error('❌ Failed to load conversation:', data);
             }
         } catch (error) {
-            console.error('Failed to load conversation:', error);
+            console.error('❌ Failed to load conversation:', error);
         }
     };
 
