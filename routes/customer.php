@@ -1,8 +1,10 @@
 <?php
 
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Customer\CustomerDashboardController;
 use App\Http\Controllers\AppointmentController;
+use App\Models\VendorStore;
 
 /*
 |--------------------------------------------------------------------------
@@ -60,8 +62,45 @@ Route::middleware(['auth', 'verified', 'customer'])->name('customer.')->group(fu
     })->name('payments');
     
     // Messages
-    Route::get('/messages', function () {
-        return inertia('Messages/Index');
+    Route::get('/messages', function (Request $request) {
+        // Fetch all active vendor stores for messaging
+        $vendors = VendorStore::where('is_active', true)
+            ->select([
+                'id',
+                'business_name',
+                'description',
+                'address',
+                'contact_phone',
+                'contact_email',
+                'business_type',
+                'logo_path',
+                'is_verified',
+                'response_time',
+                'created_at'
+            ])
+            ->orderBy('business_name')
+            ->get()
+            ->map(function ($vendor) {
+                return [
+                    'id' => $vendor->id,
+                    'business_name' => $vendor->business_name,
+                    'description' => $vendor->description,
+                    'address' => $vendor->address,
+                    'contact_phone' => $vendor->contact_phone,
+                    'contact_email' => $vendor->contact_email,
+                    'business_type' => $vendor->business_type,
+                    'logo_url' => $vendor->logo_path ? asset('storage/' . $vendor->logo_path) : null,
+                    'rating' => 4.5, // TODO: Calculate from actual reviews
+                    'total_reviews' => 0, // TODO: Get from actual reviews
+                    'verified' => $vendor->is_verified,
+                    'response_time' => $vendor->response_time,
+                ];
+            });
+
+        return inertia('Messages/Index', [
+            'vendors' => $vendors,
+            'selectedVendorId' => $request->get('vendor')
+        ]);
     })->name('messages');
     
     // Support
