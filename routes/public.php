@@ -48,8 +48,52 @@ Route::get('/services/{category}', function () {
 
 // Service Details
 Route::get('/service-details/{id}', function ($id) {
-    return Inertia::render('ServiceDetails', [
-        'serviceId' => $id
+    // Mock service data - replace with actual database query
+    $service = [
+        'id' => (int)$id,
+        'name' => 'Professional Electronics Repair',
+        'description' => 'Complete electronics repair service including smartphones, laptops, tablets, and gaming consoles. Our certified technicians use original parts and provide warranty on all repairs.',
+        'category' => 'Electronics & Technology',
+        'price_min' => 500,
+        'price_max' => 2000,
+        'duration_minutes' => 120,
+        'discount_percentage' => 15,
+        'popular' => true,
+        'includes' => [
+            'Free diagnostic assessment',
+            'Original parts replacement',
+            '90-day warranty',
+            'Pick-up and delivery service',
+            'Data recovery assistance'
+        ],
+        'requirements' => [
+            'Device must be accessible',
+            'Provide purchase receipt if available',
+            'Backup important data before service'
+        ],
+        'images' => [
+            '/img/electronics-repair-1.jpg',
+            '/img/electronics-repair-2.jpg',
+            '/img/electronics-repair-3.jpg'
+        ]
+    ];
+
+    $vendor = [
+        'id' => 1,
+        'business_name' => 'TechFix Pro',
+        'description' => 'Professional electronics repair and maintenance services with over 10 years of experience',
+        'address' => '123 Tech Street, Digital City, Metro Manila',
+        'contact_phone' => '+63 912 345 6789',
+        'contact_email' => 'contact@techfixpro.com',
+        'rating' => 4.8,
+        'total_reviews' => 156,
+        'verified' => true,
+        'response_time' => 'Within 2 hours'
+    ];
+
+    return Inertia::render('servicedetails', [
+        'service' => $service,
+        'vendor' => $vendor
     ]);
 })->name('service-details.show');
 
