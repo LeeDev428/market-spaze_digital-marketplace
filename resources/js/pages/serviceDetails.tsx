@@ -105,12 +105,12 @@ export default function ServiceDetails({ service, vendor }: ServiceDetailsProps)
 
     const handleContactVendor = () => {
         // Navigate to messages with this vendor
-        window.location.href = `/messages?vendor=${vendor.id}`;
+        window.location.href = `/messages?vendor=${vendor?.id}`;
     };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title={`${service.name} - Service Details`} />
+            <Head title={`${service?.name || 'Service'} - Service Details`} />
             
             <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
                 <div className="container mx-auto px-4 py-8">
@@ -130,10 +130,10 @@ export default function ServiceDetails({ service, vendor }: ServiceDetailsProps)
                                 <div className="relative bg-white dark:bg-slate-800 rounded-2xl overflow-hidden shadow-lg">
                                     <img
                                         src={images[currentImageIndex]}
-                                        alt={service.name}
+                                        alt={service?.name || 'Service'}
                                         className="w-full h-96 object-cover"
                                     />
-                                    {service.popular && (
+                                    {service?.popular && (
                                         <div className="absolute top-4 left-4">
                                             <span className="bg-gradient-to-r from-orange-400 to-pink-500 text-white px-3 py-1 rounded-full text-sm font-medium flex items-center">
                                                 <Star size={14} className="mr-1" />
@@ -182,7 +182,7 @@ export default function ServiceDetails({ service, vendor }: ServiceDetailsProps)
                                             >
                                                 <img
                                                     src={image}
-                                                    alt={`${service.name} ${index + 1}`}
+                                                    alt={`${service?.name || 'Service'} ${index + 1}`}
                                                     className="w-full h-full object-cover"
                                                 />
                                             </button>
@@ -197,7 +197,7 @@ export default function ServiceDetails({ service, vendor }: ServiceDetailsProps)
                                 <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-lg">
                                     <div className="flex items-center gap-2 mb-3">
                                         <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 px-3 py-1 rounded-full text-sm font-medium">
-                                            {service.category}
+                                            {service?.category}
                                         </span>
                                         <div className="flex items-center text-sm text-slate-600 dark:text-slate-400">
                                             <Star className="text-yellow-400 fill-current mr-1" size={16} />
@@ -207,7 +207,7 @@ export default function ServiceDetails({ service, vendor }: ServiceDetailsProps)
                                     </div>
                                     
                                     <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-4">
-                                        {service.name}
+                                        {service?.name}
                                     </h1>
 
                                     {/* Pricing */}
@@ -218,17 +218,17 @@ export default function ServiceDetails({ service, vendor }: ServiceDetailsProps)
                                                     ₱{discountedPrice.toLocaleString()}
                                                 </span>
                                                 <span className="text-xl text-slate-400 line-through">
-                                                    ₱{service.price_min.toLocaleString()}
+                                                    ₱{service?.price_min?.toLocaleString()}
                                                 </span>
                                                 <span className="bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400 px-3 py-1 rounded-full text-sm font-medium">
-                                                    {service.discount_percentage}% OFF
+                                                    {service?.discount_percentage}% OFF
                                                 </span>
                                             </>
                                         ) : (
                                             <span className="text-3xl font-bold text-slate-900 dark:text-white">
-                                                {service.price_min === service.price_max 
-                                                    ? `₱${service.price_min.toLocaleString()}`
-                                                    : `₱${service.price_min.toLocaleString()} - ₱${service.price_max.toLocaleString()}`
+                                                {service?.price_min === service?.price_max 
+                                                    ? `₱${service?.price_min?.toLocaleString()}`
+                                                    : `₱${service?.price_min?.toLocaleString()} - ₱${service?.price_max?.toLocaleString()}`
                                                 }
                                             </span>
                                         )}
@@ -238,7 +238,7 @@ export default function ServiceDetails({ service, vendor }: ServiceDetailsProps)
                                     <div className="flex items-center gap-6 text-sm text-slate-600 dark:text-slate-400 mb-6">
                                         <div className="flex items-center">
                                             <Timer size={16} className="mr-2 text-blue-500" />
-                                            {service.duration_minutes} minutes
+                                            {service?.duration_minutes} minutes
                                         </div>
                                         <div className="flex items-center">
                                             <Shield size={16} className="mr-2 text-green-500" />
@@ -275,7 +275,7 @@ export default function ServiceDetails({ service, vendor }: ServiceDetailsProps)
                                         <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
                                             Service Provider
                                         </h3>
-                                        {vendor.verified && (
+                                        {vendor?.verified && (
                                             <span className="flex items-center text-blue-600 dark:text-blue-400 text-sm font-medium">
                                                 <BadgeCheck size={16} className="mr-1" />
                                                 Verified
@@ -285,43 +285,43 @@ export default function ServiceDetails({ service, vendor }: ServiceDetailsProps)
                                     
                                     <div className="space-y-3">
                                         <h4 className="text-xl font-bold text-slate-900 dark:text-white">
-                                            {vendor.business_name}
+                                            {vendor?.business_name}
                                         </h4>
                                         
                                         <div className="flex items-center gap-4 text-sm text-slate-600 dark:text-slate-400">
                                             <div className="flex items-center">
                                                 <Star className="text-yellow-400 fill-current mr-1" size={16} />
-                                                <span>{vendor.rating || 4.8} Rating</span>
+                                                <span>{vendor?.rating || 4.8} Rating</span>
                                             </div>
                                             <div className="flex items-center">
                                                 <Users className="mr-1" size={16} />
-                                                <span>{vendor.total_reviews || 127} Reviews</span>
+                                                <span>{vendor?.total_reviews || 127} Reviews</span>
                                             </div>
                                             <div className="flex items-center">
                                                 <Clock size={16} className="mr-1" />
-                                                <span>{vendor.response_time || 'Within 1 hour'}</span>
+                                                <span>{vendor?.response_time || 'Within 1 hour'}</span>
                                             </div>
                                         </div>
 
                                         <div className="flex items-center text-sm text-slate-600 dark:text-slate-400">
                                             <MapPin size={16} className="mr-2 flex-shrink-0" />
-                                            <span>{vendor.address}</span>
+                                            <span>{vendor?.address}</span>
                                         </div>
 
                                         <div className="flex gap-3 pt-2">
                                             <a
-                                                href={`tel:${vendor.contact_phone}`}
+                                                href={`tel:${vendor?.contact_phone}`}
                                                 className="flex items-center text-sm text-blue-600 dark:text-blue-400 hover:underline"
                                             >
                                                 <Phone size={16} className="mr-2" />
-                                                {vendor.contact_phone}
+                                                {vendor?.contact_phone}
                                             </a>
                                             <a
-                                                href={`mailto:${vendor.contact_email}`}
+                                                href={`mailto:${vendor?.contact_email}`}
                                                 className="flex items-center text-sm text-blue-600 dark:text-blue-400 hover:underline"
                                             >
                                                 <Mail size={16} className="mr-2" />
-                                                {vendor.contact_email}
+                                                {vendor?.contact_email}
                                             </a>
                                         </div>
                                     </div>
@@ -338,9 +338,9 @@ export default function ServiceDetails({ service, vendor }: ServiceDetailsProps)
                                 </h3>
                                 <div className="prose dark:prose-invert max-w-none">
                                     <p className={`text-slate-600 dark:text-slate-400 leading-relaxed ${!showFullDescription ? 'line-clamp-4' : ''}`}>
-                                        {service.description || `Experience professional ${service.name.toLowerCase()} service with our expert team. We provide comprehensive solutions tailored to your specific needs, ensuring quality results and customer satisfaction. Our experienced professionals use industry-standard tools and techniques to deliver exceptional service that exceeds expectations.`}
+                                        {service?.description || `Experience professional ${service?.name?.toLowerCase()} service with our expert team. We provide comprehensive solutions tailored to your specific needs, ensuring quality results and customer satisfaction. Our experienced professionals use industry-standard tools and techniques to deliver exceptional service that exceeds expectations.`}
                                     </p>
-                                    {service.description && service.description.length > 200 && (
+                                    {service?.description && service.description.length > 200 && (
                                         <button
                                             onClick={() => setShowFullDescription(!showFullDescription)}
                                             className="text-blue-600 dark:text-blue-400 hover:underline mt-2 text-sm font-medium"
@@ -359,7 +359,7 @@ export default function ServiceDetails({ service, vendor }: ServiceDetailsProps)
                                         What's Included
                                     </h3>
                                     <ul className="space-y-3">
-                                        {(service.includes || [
+                                        {(service?.includes || [
                                             'Professional consultation',
                                             'Quality service guarantee',
                                             'Expert technician',
@@ -375,7 +375,7 @@ export default function ServiceDetails({ service, vendor }: ServiceDetailsProps)
                                 </div>
 
                                 {/* Requirements */}
-                                {service.requirements && service.requirements.length > 0 && (
+                                {service?.requirements && service.requirements.length > 0 && (
                                     <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-lg">
                                         <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
                                             Requirements
