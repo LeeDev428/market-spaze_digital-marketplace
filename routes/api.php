@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AppointmentController;
+use App\Http\Controllers\Api\NotificationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -26,6 +27,13 @@ Route::get('/appointments/user-history/{email}', [AppointmentController::class, 
 // Test route for debugging
 Route::get('/test-history/{email}', function ($email) {
     return (new AppointmentController())->getUserHistory($email);
+});
+
+// Notification API Routes
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/notifications/appointments', [NotificationController::class, 'getAppointmentNotifications']);
+    Route::post('/notifications/mark-read', [NotificationController::class, 'markAsRead']);
+    Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead']);
 });
 
 // Include Messages API routes
