@@ -125,6 +125,104 @@ class MessageController extends Controller
     }
 
     /**
+     * Get user's conversations with unread counts
+     */
+    public function getConversations(Request $request, $userId)
+    {
+        try {
+            // First try MongoDB service
+            $response = Http::timeout(5)->get("http://127.0.0.1:3003/api/messages/conversations/{$userId}");
+            
+            if ($response->successful()) {
+                return response()->json($response->json());
+            }
+        } catch (\Exception $e) {
+            Log::warning('MongoDB service unavailable, using database: ' . $e->getMessage());
+        }
+
+        // Fallback to Laravel database
+        try {
+            $conversations = Message::selectRaw('
+                CASE 
+                    WHEN sender_id = ? THEN recipient_id 
+                    ELSE sender_id 
+                END as other_user_id,
+                CASE 
+                    WHEN sender_id = ? THEN recipient_name 
+                    ELSE sender_name 
+                END as other_user_name,
+                CASE 
+                    WHEN sender_id = ? THEN recipient_type 
+                    ELSE sender_type 
+                END as other_user_type,
+                MAX(created_at) as last_message_time,
+                COUNT(*) as total_messages,
+                SUM(CASE WHEN recipient_id = ? AND is_read = 0 THEN 1 ELSE 0 END) as unread_count
+            ', [$userId, $userId, $userId, $userId])
+            ->where(function($query) use ($userId) {
+                $query->where('sender_id', $userId)
+                      ->orWhere('recipient_id', $userId);
+            })
+            ->groupByRaw('other_user_id, other_user_name, other_user_type')
+            ->orderBy('last_message_time', 'desc')
+            ->get();
+
+            return response()->json([
+                'success' => true,
+                'conversations' => $conversations->map(function($conv) {
+                    return [
+                        'user_id' => $conv->other_user_id,
+                        'user_name' => $conv->other_user_name,
+                        'user_type' => $conv->other_user_type,
+                        'last_message_time' => $conv->last_message_time,
+                        'total_messages' => $conv->total_messages,
+                        'unread_count' => $conv->unread_count
+                    ];
+                })
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to load conversations: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get total unread message count for a user
+     */
+    public function getUnreadCount(Request $request, $userId)
+    {
+        try {
+            // First try MongoDB service
+            $response = Http::timeout(5)->get("http://127.0.0.1:3003/api/messages/unread-count/{$userId}");
+            
+            if ($response->successful()) {
+                return response()->json($response->json());
+            }
+        } catch (\Exception $e) {
+            Log::warning('MongoDB service unavailable, using database: ' . $e->getMessage());
+        }
+
+        // Fallback to Laravel database
+        try {
+            $unreadCount = Message::where('recipient_id', $userId)
+                                 ->where('is_read', false)
+                                 ->count();
+
+            return response()->json([
+                'success' => true,
+                'unread_count' => $unreadCount
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to get unread count: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Get conversation between two users
      */
     public function getConversation(Request $request, $user1, $user2)
