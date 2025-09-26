@@ -101,7 +101,7 @@ export default function CreateStore() {
 
     const [logoPreview, setLogoPreview] = useState<string | null>(null);
 
-    // Initialize Inertia form with simple data structure
+    // Initialize Inertia form with flexible data structure
     const { data, setData, post, processing, errors, reset } = useForm({
         businessName: '',
         description: '',
@@ -111,7 +111,7 @@ export default function CreateStore() {
         contactPhone: '',
         contactEmail: '',
         serviceDescription: '',
-        logo: null,
+        logo: null as File | null,
         productServices: [] as any[],
     });
 
@@ -243,7 +243,97 @@ export default function CreateStore() {
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         
-        // Update all form data before submission
+        // Prepare FormData for file uploads
+        const formDataToSubmit = new FormData();
+        
+        // Add basic store info
+        formDataToSubmit.append('businessName', formData.businessName);
+        formDataToSubmit.append('description', formData.description);
+        formDataToSubmit.append('businessType', formData.businessType);
+        formDataToSubmit.append('address', formData.address);
+        formDataToSubmit.append('contactPhone', formData.contactPhone);
+        formDataToSubmit.append('contactEmail', formData.contactEmail);
+        formDataToSubmit.append('serviceDescription', formData.serviceDescription || '');
+        
+        // Add serviceable areas
+        formData.serviceableAreas.filter(area => area.trim() !== '').forEach((area, index) => {
+            formDataToSubmit.append(`serviceableAreas[${index}]`, area);
+        });
+        
+        // Add logo if exists
+        if (formData.logo) {
+            formDataToSubmit.append('logo', formData.logo);
+        }
+        
+        // Add products/services with all fields and images
+        productServices.filter(item => item.name.trim() !== '').forEach((item, index) => {
+            formDataToSubmit.append(`productServices[${index}][name]`, item.name);
+            formDataToSubmit.append(`productServices[${index}][description]`, item.description);
+            formDataToSubmit.append(`productServices[${index}][category]`, item.category);
+            formDataToSubmit.append(`productServices[${index}][priceMin]`, item.priceMin);
+            formDataToSubmit.append(`productServices[${index}][priceMax]`, item.priceMax);
+            formDataToSubmit.append(`productServices[${index}][durationMinutes]`, item.durationMinutes || '');
+            formDataToSubmit.append(`productServices[${index}][discountPercentage]`, item.discountPercentage || '0');
+            formDataToSubmit.append(`productServices[${index}][responseTime]`, item.responseTime || '');
+            formDataToSubmit.append(`productServices[${index}][includes]`, item.includes || '');
+            formDataToSubmit.append(`productServices[${index}][requirements]`, item.requirements || '');
+            formDataToSubmit.append(`productServices[${index}][tags]`, item.tags || '');
+            formDataToSubmit.append(`productServices[${index}][specialInstructions]`, item.specialInstructions || '');
+            formDataToSubmit.append(`productServices[${index}][warrantyDays]`, item.warrantyDays || '');
+            
+            // Boolean fields
+            formDataToSubmit.append(`productServices[${index}][isPopular]`, item.isPopular ? '1' : '0');
+            formDataToSubmit.append(`productServices[${index}][isGuaranteed]`, item.isGuaranteed ? '1' : '0');
+            formDataToSubmit.append(`productServices[${index}][isProfessional]`, item.isProfessional ? '1' : '0');
+            formDataToSubmit.append(`productServices[${index}][hasWarranty]`, item.hasWarranty ? '1' : '0');
+            formDataToSubmit.append(`productServices[${index}][pickupAvailable]`, item.pickupAvailable ? '1' : '0');
+            formDataToSubmit.append(`productServices[${index}][deliveryAvailable]`, item.deliveryAvailable ? '1' : '0');
+            formDataToSubmit.append(`productServices[${index}][emergencyService]`, item.emergencyService ? '1' : '0');
+            
+            // Add images
+            item.images.forEach((image, imageIndex) => {
+                formDataToSubmit.append(`productServices[${index}][images][${imageIndex}]`, image);
+            });
+        });
+
+        // Submit with Inertia - use a different approach
+        // Convert FormData back to object for Inertia
+        const submitData = {
+            businessName: formData.businessName,
+            description: formData.description,
+            businessType: formData.businessType,
+            address: formData.address,
+            serviceableAreas: formData.serviceableAreas.filter(area => area.trim() !== ''),
+            contactPhone: formData.contactPhone,
+            contactEmail: formData.contactEmail,
+            serviceDescription: formData.serviceDescription || '',
+            logo: formData.logo,
+            productServices: productServices.filter(item => item.name.trim() !== '').map(item => ({
+                name: item.name,
+                description: item.description,
+                category: item.category,
+                priceMin: item.priceMin,
+                priceMax: item.priceMax,
+                durationMinutes: item.durationMinutes || '',
+                discountPercentage: item.discountPercentage || '0',
+                responseTime: item.responseTime || '',
+                includes: item.includes || '',
+                requirements: item.requirements || '',
+                tags: item.tags || '',
+                specialInstructions: item.specialInstructions || '',
+                warrantyDays: item.warrantyDays || '',
+                isPopular: item.isPopular,
+                isGuaranteed: item.isGuaranteed,
+                isProfessional: item.isProfessional,
+                hasWarranty: item.hasWarranty,
+                pickupAvailable: item.pickupAvailable,
+                deliveryAvailable: item.deliveryAvailable,
+                emergencyService: item.emergencyService,
+                images: item.images
+            }))
+        };
+
+        // Set all data in the form first
         setData({
             businessName: formData.businessName,
             description: formData.description,
@@ -252,17 +342,40 @@ export default function CreateStore() {
             serviceableAreas: formData.serviceableAreas.filter(area => area.trim() !== ''),
             contactPhone: formData.contactPhone,
             contactEmail: formData.contactEmail,
-            serviceDescription: formData.serviceDescription,
+            serviceDescription: formData.serviceDescription || '',
             logo: formData.logo,
-            productServices: productServices.filter(item => item.name.trim() !== '')
+            productServices: productServices.filter(item => item.name.trim() !== '').map(item => ({
+                name: item.name,
+                description: item.description,
+                category: item.category,
+                priceMin: item.priceMin,
+                priceMax: item.priceMax,
+                durationMinutes: item.durationMinutes || '',
+                discountPercentage: item.discountPercentage || '0',
+                responseTime: item.responseTime || '',
+                includes: item.includes || '',
+                requirements: item.requirements || '',
+                tags: item.tags || '',
+                specialInstructions: item.specialInstructions || '',
+                warrantyDays: item.warrantyDays || '',
+                isPopular: item.isPopular,
+                isGuaranteed: item.isGuaranteed,
+                isProfessional: item.isProfessional,
+                hasWarranty: item.hasWarranty,
+                pickupAvailable: item.pickupAvailable,
+                deliveryAvailable: item.deliveryAvailable,
+                emergencyService: item.emergencyService,
+                images: item.images
+            }))
         });
 
-        // Create new store
+        // Submit form
         post(route('vendor.store.store'), {
+            forceFormData: true,
             onSuccess: () => {
                 console.log('Store created successfully');
             },
-            onError: (errors) => {
+            onError: (errors: any) => {
                 console.error('Creation failed:', errors);
             }
         });
