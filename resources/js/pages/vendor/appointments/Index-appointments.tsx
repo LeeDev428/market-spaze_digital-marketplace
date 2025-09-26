@@ -139,6 +139,44 @@ interface Appointment {
     updated_at?: string;
     vendor_store?: VendorStore;
     rider?: Rider;
+    // Enhanced service details
+    vendor_product_service?: {
+        id: number;
+        name: string;
+        description: string;
+        category: string;
+        price_min: number;
+        price_max: number;
+        duration_minutes?: number;
+        discount_percentage?: number;
+        is_popular: boolean;
+        is_guaranteed: boolean;
+        is_professional: boolean;
+        rating: number;
+        total_reviews: number;
+        response_time?: string;
+        includes?: string[];
+        requirements?: string[];
+        tags?: string[];
+        has_warranty: boolean;
+        warranty_days?: number;
+        pickup_available: boolean;
+        delivery_available: boolean;
+        emergency_service: boolean;
+        special_instructions?: string;
+        primary_image?: {
+            id: number;
+            image_path: string;
+            alt_text?: string;
+        };
+        images?: {
+            id: number;
+            image_path: string;
+            alt_text?: string;
+            sort_order: number;
+            is_primary: boolean;
+        }[];
+    };
 }
 
 const monthNames = [
@@ -1545,34 +1583,90 @@ export default function VendorAppointments({ appointmentCounts, recentAppointmen
                                 <div className="p-4 space-y-4">{/* Increased spacing */}
                                             {dayAppointments.map((appointment) => {
                                                 const StatusIcon = statusIcons[appointment.status] || AlertCircle;
+                                                const serviceImage = appointment.vendor_product_service?.primary_image?.image_path || 
+                                                                   appointment.vendor_product_service?.images?.find(img => img.is_primary)?.image_path ||
+                                                                   appointment.vendor_product_service?.images?.[0]?.image_path;
+                                                
                                                 return (
-                                                    <div key={appointment.id} className="border border-slate-200 dark:border-slate-600 rounded-lg p-4">
-                                                        <div className="flex items-start justify-between mb-2">
-                                                            <div className="flex-1">
-                                                                <h4 className="font-medium text-slate-900 dark:text-white">
-                                                                    {appointment.customer_name}
-                                                                </h4>
-                                                                <p className="text-sm text-slate-600 dark:text-slate-400">
-                                                                    {appointment.service_name}
-                                                                </p>
+                                                    <div key={appointment.id} className="border border-slate-200 dark:border-slate-600 rounded-lg p-4 hover:shadow-md transition-shadow">
+                                                        <div className="flex items-start space-x-3 mb-3">
+                                                            {/* Service Image */}
+                                                            <div className="flex-shrink-0">
+                                                                {serviceImage ? (
+                                                                    <img
+                                                                        src={`/storage/${serviceImage}`}
+                                                                        alt={appointment.vendor_product_service?.primary_image?.alt_text || appointment.service_name}
+                                                                        className="w-12 h-12 rounded-lg object-cover border border-slate-200 dark:border-slate-600"
+                                                                    />
+                                                                ) : (
+                                                                    <div className="w-12 h-12 rounded-lg bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
+                                                                        <Building2 size={20} className="text-slate-400" />
+                                                                    </div>
+                                                                )}
                                                             </div>
-                                                            <div className="flex items-center space-x-2">
-                                                                <Badge className={statusColors[appointment.status]}>
-                                                                    <StatusIcon size={12} className="mr-1" />
-                                                                    {appointment.status}
-                                                                </Badge>
+                                                            
+                                                            <div className="flex-1 min-w-0">
+                                                                <div className="flex items-start justify-between mb-1">
+                                                                    <div className="flex-1">
+                                                                        <h4 className="font-medium text-slate-900 dark:text-white truncate">
+                                                                            {appointment.customer_name}
+                                                                        </h4>
+                                                                        <p className="text-sm text-slate-600 dark:text-slate-400 truncate">
+                                                                            {appointment.service_name}
+                                                                        </p>
+                                                                        
+                                                                        {/* Service Features */}
+                                                                        <div className="flex items-center space-x-2 mt-1">
+                                                                            {appointment.vendor_product_service?.is_guaranteed && (
+                                                                                <div className="flex items-center text-xs text-emerald-600 dark:text-emerald-400">
+                                                                                    <Shield size={10} className="mr-1" />
+                                                                                    Guaranteed
+                                                                                </div>
+                                                                            )}
+                                                                            {appointment.vendor_product_service?.is_popular && (
+                                                                                <div className="flex items-center text-xs text-orange-600 dark:text-orange-400">
+                                                                                    <Star size={10} className="mr-1" />
+                                                                                    Popular
+                                                                                </div>
+                                                                            )}
+                                                                            {appointment.vendor_product_service?.rating && (
+                                                                                <div className="flex items-center text-xs text-yellow-600 dark:text-yellow-400">
+                                                                                    <Star size={10} className="mr-1 fill-current" />
+                                                                                    {appointment.vendor_product_service.rating.toFixed(1)}
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="flex items-center space-x-2">
+                                                                        <Badge className={statusColors[appointment.status]}>
+                                                                            <StatusIcon size={12} className="mr-1" />
+                                                                            {appointment.status}
+                                                                        </Badge>
+                                                                    </div>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                         
                                                         <div className="space-y-2 text-sm text-slate-600 dark:text-slate-400 mb-3">
                                                             <div className="flex items-center">
-                                                                <Clock size={14} className="mr-2" />
-                                                                {formatTime(appointment.appointment_time)}
+                                                                <Clock size={14} className="mr-2 flex-shrink-0" />
+                                                                <span>{formatTime(appointment.appointment_time)}</span>
+                                                                {appointment.duration_minutes && (
+                                                                    <span className="ml-2 text-xs text-slate-500">
+                                                                        ({appointment.duration_minutes} min)
+                                                                    </span>
+                                                                )}
                                                             </div>
                                                             <div className="flex items-center">
-                                                                <Phone size={14} className="mr-2" />
-                                                                {appointment.customer_phone}
+                                                                <Phone size={14} className="mr-2 flex-shrink-0" />
+                                                                <span className="truncate">{appointment.customer_phone}</span>
                                                             </div>
+                                                            {appointment.vendor_product_service?.response_time && (
+                                                                <div className="flex items-center">
+                                                                    <AlertCircle size={14} className="mr-2 flex-shrink-0" />
+                                                                    <span className="text-xs">Response: {appointment.vendor_product_service.response_time}</span>
+                                                                </div>
+                                                            )}
                                                         </div>
 
                                                         {/* Compact Action Buttons */}
