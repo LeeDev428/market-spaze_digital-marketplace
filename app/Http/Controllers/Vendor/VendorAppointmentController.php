@@ -168,7 +168,7 @@ class VendorAppointmentController extends Controller
         
         $appointments = Appointment::where('vendor_store_id', $vendorStore->id)
             ->whereDate('appointment_date', $date)
-            ->with(['vendorStore', 'rider']) // Load all necessary relationships
+            ->with(['vendorStore', 'rider', 'vendorProductService.images']) // Load all necessary relationships including service and images
             ->orderBy('appointment_time')
             ->get()
             ->map(function ($appointment) {
@@ -304,7 +304,7 @@ class VendorAppointmentController extends Controller
         }
 
         $query = Appointment::where('vendor_store_id', $vendorStore->id)
-            ->with(['user', 'rider', 'vendorStore']); // Add rider and vendorStore relationships
+            ->with(['user', 'rider', 'vendorStore', 'vendorProductService.images']); // Add rider and vendorStore relationships including service and images
 
         // Apply filters
         if ($request->filled('search')) {
