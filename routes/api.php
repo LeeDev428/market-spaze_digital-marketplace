@@ -29,8 +29,8 @@ Route::get('/test-history/{email}', function ($email) {
     return (new AppointmentController())->getUserHistory($email);
 });
 
-// Notification API Routes
-Route::middleware('auth:sanctum')->group(function () {
+// Notification API Routes - use web auth for Inertia apps
+Route::middleware('auth')->group(function () {
     Route::get('/notifications/appointments', [NotificationController::class, 'getAppointmentNotifications']);
     Route::post('/notifications/mark-read', [NotificationController::class, 'markAsRead']);
     Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead']);
