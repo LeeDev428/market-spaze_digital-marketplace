@@ -26,8 +26,8 @@ return new class extends Migration
             $table->index('is_primary');
             
             // Ensure max 8 images per service (handled at application level)
-            // Add constraint to ensure only one primary image per service
-            $table->unique(['vendor_product_service_id', 'is_primary'], 'unique_primary_per_service');
+            // Note: Unique constraint for primary images handled at application level
+            // since MySQL doesn't support partial unique constraints easily
         });
     }
 
