@@ -92,7 +92,7 @@ export default function ServiceDetails({ service, vendor }: ServiceDetailsProps)
         ? service.price_min * (1 - service.discount_percentage / 100)
         : null;
 
-    const images = service?.images || [
+        const images = service?.images || [
         '/img/service-placeholder-1.jpg',
         '/img/service-placeholder-2.jpg',
         '/img/service-placeholder-3.jpg'
@@ -381,7 +381,7 @@ export default function ServiceDetails({ service, vendor }: ServiceDetailsProps)
                                             Requirements
                                         </h3>
                                         <ul className="space-y-3">
-                                            {service.requirements.map((requirement, index) => (
+                                            {service?.requirements?.map((requirement, index) => (
                                                 <li key={index} className="flex items-start text-sm text-slate-600 dark:text-slate-400">
                                                     <AlertTriangle size={16} className="mr-3 text-amber-500 flex-shrink-0 mt-0.5" />
                                                     {requirement}
