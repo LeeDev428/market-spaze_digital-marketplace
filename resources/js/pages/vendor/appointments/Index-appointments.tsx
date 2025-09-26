@@ -1184,6 +1184,14 @@ const formatTime = (timeStr: string) => {
 export default function VendorAppointments({ appointmentCounts, recentAppointments, stats, vendorStore }: Props) {
     // Get flash messages from Inertia
     const { flash } = usePage().props as any;
+    
+    // Debug: Log the props to see what data is being passed
+    console.log('🔍 Appointments Debug:', {
+        appointmentCounts,
+        recentAppointments,
+        stats,
+        vendorStore
+    });
 
     const today = new Date();
     const [currentMonth, setCurrentMonth] = useState(today.getMonth());
