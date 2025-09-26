@@ -14,7 +14,8 @@ import { Link, usePage } from '@inertiajs/react';
 import { BookOpen, Folder, LayoutGrid, Menu, Search, Bell } from 'lucide-react';
 import AppLogo from './app-logo';
 import AppLogoIcon from './app-logo-icon';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { io, Socket } from 'socket.io-client';
 
 const mainNavItems: NavItem[] = [
     {
@@ -39,8 +40,9 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
     const { auth } = page.props;
     const getInitials = useInitials();
     const [unreadCount, setUnreadCount] = useState(0);
+    const socketRef = useRef<Socket | null>(null);
 
-    // Fetch unread messages count
+    // Fetch unread messages count and setup real-time updates
     useEffect(() => {
         const fetchUnreadCount = async () => {
             if (auth?.user?.id) {
@@ -56,12 +58,42 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
             }
         };
 
-        fetchUnreadCount();
+        // Initialize Socket.IO for real-time updates
+        if (auth?.user?.id) {
+            socketRef.current = io('http://127.0.0.1:3003', {
+                withCredentials: true
+            });
+
+            const socket = socketRef.current;
+
+            socket.on('connect', () => {
+                socket.emit('join', {
+                    userId: auth.user.id,
+                    userType: auth.user.user_type || 'customer',
+                    userName: auth.user.name
+                });
+            });
+
+            // Listen for real-time unread count updates
+            socket.on('unread_count_update', (data: { unreadCount: number }) => {
+                setUnreadCount(data.unreadCount);
+            });
+
+            fetchUnreadCount();
+        }
+
         // For testing: Set some unread messages
         setUnreadCount(3);
-        // Poll for updates every 30 seconds
+        
+        // Poll for updates every 30 seconds as fallback
         const interval = setInterval(fetchUnreadCount, 30000);
-        return () => clearInterval(interval);
+        
+        return () => {
+            clearInterval(interval);
+            if (socketRef.current) {
+                socketRef.current.disconnect();
+            }
+        };
     }, [auth?.user?.id]);
     return (
         <>
