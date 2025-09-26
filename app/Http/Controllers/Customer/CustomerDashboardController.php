@@ -197,7 +197,8 @@ class CustomerDashboardController extends Controller
             ->where('id', $id)
             ->firstOrFail();
 
-        $order->update(['status' => 'cancelled']);
+        $order->status = 'cancelled';
+        $order->save();
 
         return redirect()->route('customer.orders')->with('success', 'Order cancelled successfully');
     }
