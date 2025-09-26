@@ -124,4 +124,167 @@ class CustomerDashboardController extends Controller
             'notifications' => $notifications,
         ]);
     }
+
+    public function profile()
+    {
+        $user = Auth::user();
+        
+        return Inertia::render('Customer/Profile', [
+            'user' => $user
+        ]);
+    }
+
+    public function updateProfile(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users,email,' . Auth::id(),
+        ]);
+
+        $user = Auth::user();
+        $user->update($request->only(['name', 'email']));
+
+        return redirect()->route('customer.profile')->with('success', 'Profile updated successfully');
+    }
+
+    public function settings()
+    {
+        return Inertia::render('Customer/Settings');
+    }
+
+    public function updateSettings(Request $request)
+    {
+        // Handle settings update logic
+        return redirect()->route('customer.settings')->with('success', 'Settings updated successfully');
+    }
+
+    public function orders()
+    {
+        $user = Auth::user();
+        
+        $orders = Appointment::where('user_id', $user->id)
+            ->with(['vendorStore', 'service'])
+            ->latest()
+            ->paginate(10);
+
+        return Inertia::render('Customer/Orders', [
+            'orders' => $orders
+        ]);
+    }
+
+    public function showOrder($id)
+    {
+        $user = Auth::user();
+        
+        $order = Appointment::where('user_id', $user->id)
+            ->where('id', $id)
+            ->with(['vendorStore', 'service'])
+            ->firstOrFail();
+
+        return Inertia::render('Customer/OrderDetails', [
+            'order' => $order
+        ]);
+    }
+
+    public function cancelOrder($id)
+    {
+        $user = Auth::user();
+        
+        $order = Appointment::where('user_id', $user->id)
+            ->where('id', $id)
+            ->firstOrFail();
+
+        $order->update(['status' => 'cancelled']);
+
+        return redirect()->route('customer.orders')->with('success', 'Order cancelled successfully');
+    }
+
+    public function favorites()
+    {
+        $user = Auth::user();
+        
+        // For now, return mock data since we don't have a favorites table yet
+        $favorites = collect([]);
+
+        return Inertia::render('Customer/Favorites', [
+            'favorites' => $favorites
+        ]);
+    }
+
+    public function addFavorite($vendorId)
+    {
+        // Logic to add vendor to favorites
+        // This would require a user_favorites table
+        
+        return redirect()->back()->with('success', 'Added to favorites');
+    }
+
+    public function removeFavorite($vendorId)
+    {
+        // Logic to remove vendor from favorites
+        
+        return redirect()->back()->with('success', 'Removed from favorites');
+    }
+
+    public function reviews()
+    {
+        $user = Auth::user();
+        
+        // Mock reviews data for now
+        $reviews = collect([]);
+
+        return Inertia::render('Customer/Reviews', [
+            'reviews' => $reviews
+        ]);
+    }
+
+    public function storeReview(Request $request)
+    {
+        $request->validate([
+            'rating' => 'required|integer|between:1,5',
+            'comment' => 'required|string|max:1000',
+            'vendor_id' => 'required|exists:vendor_stores,id'
+        ]);
+
+        // Logic to store review
+        
+        return redirect()->route('customer.reviews')->with('success', 'Review added successfully');
+    }
+
+    public function updateReview(Request $request, $id)
+    {
+        $request->validate([
+            'rating' => 'required|integer|between:1,5',
+            'comment' => 'required|string|max:1000'
+        ]);
+
+        // Logic to update review
+        
+        return redirect()->route('customer.reviews')->with('success', 'Review updated successfully');
+    }
+
+    public function markNotificationAsRead($id)
+    {
+        // Logic to mark notification as read
+        
+        return response()->json(['success' => true]);
+    }
+
+    public function support()
+    {
+        return Inertia::render('Customer/Support');
+    }
+
+    public function createTicket(Request $request)
+    {
+        $request->validate([
+            'subject' => 'required|string|max:255',
+            'message' => 'required|string',
+            'priority' => 'required|in:low,medium,high'
+        ]);
+
+        // Logic to create support ticket
+        
+        return redirect()->route('customer.support')->with('success', 'Support ticket created successfully');
+    }
 }
