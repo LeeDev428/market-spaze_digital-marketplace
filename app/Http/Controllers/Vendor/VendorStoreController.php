@@ -222,17 +222,28 @@ class VendorStoreController extends Controller
                 // Handle multiple image uploads for this service
                 // Note: Frontend sends images as files in the productServices array
                 if (isset($productService['images']) && is_array($productService['images'])) {
+                    // Ensure only one primary image by checking existing primary images first
+                    $existingPrimaryCount = $createdService->images()->where('is_primary', true)->count();
+                    
                     foreach ($productService['images'] as $index => $image) {
                         if ($image instanceof \Illuminate\Http\UploadedFile) {
                             $imagePath = $image->store('product-service-images', 'public');
+                            
+                            // Only set first image as primary if no primary exists yet
+                            $isPrimary = ($index === 0 && $existingPrimaryCount === 0);
                             
                             // Create image record in product_service_images table
                             $createdService->images()->create([
                                 'image_path' => $imagePath,
                                 'alt_text' => $productService['name'] . ' - Image ' . ($index + 1),
                                 'sort_order' => $index,
-                                'is_primary' => $index === 0, // First image is primary
+                                'is_primary' => $isPrimary,
                             ]);
+                            
+                            // Update count to prevent multiple primary images
+                            if ($isPrimary) {
+                                $existingPrimaryCount++;
+                            }
                         }
                     }
                 }
@@ -391,17 +402,28 @@ class VendorStoreController extends Controller
 
                 // Handle multiple image uploads for this service
                 if (isset($productService['images']) && is_array($productService['images'])) {
+                    // Ensure only one primary image by checking existing primary images first
+                    $existingPrimaryCount = $createdService->images()->where('is_primary', true)->count();
+                    
                     foreach ($productService['images'] as $index => $image) {
                         if ($image instanceof \Illuminate\Http\UploadedFile) {
                             $imagePath = $image->store('product-service-images', 'public');
+                            
+                            // Only set first image as primary if no primary exists yet
+                            $isPrimary = ($index === 0 && $existingPrimaryCount === 0);
                             
                             // Create image record in product_service_images table
                             $createdService->images()->create([
                                 'image_path' => $imagePath,
                                 'alt_text' => $productService['name'] . ' - Image ' . ($index + 1),
                                 'sort_order' => $index,
-                                'is_primary' => $index === 0, // First image is primary
+                                'is_primary' => $isPrimary,
                             ]);
+                            
+                            // Update count to prevent multiple primary images
+                            if ($isPrimary) {
+                                $existingPrimaryCount++;
+                            }
                         }
                     }
                 }
