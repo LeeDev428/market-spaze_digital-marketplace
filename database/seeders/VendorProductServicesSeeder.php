@@ -122,8 +122,27 @@ class VendorProductServicesSeeder extends Seeder
                     'vendor_store_id' => $techHub->id,
                     'name' => 'Electronics Delivery',
                     'description' => 'Safe delivery of electronics including smartphones, laptops, tablets, and accessories.',
+                    'category' => 'Electronics & Technology',
                     'price_min' => 1000.00,
                     'price_max' => 100000.00,
+                    'duration_minutes' => 120,
+                    'rating' => 4.7,
+                    'total_reviews' => 134,
+                    'response_time' => 'Within 2 hours',
+                    'includes' => json_encode([
+                        'Secure packaging',
+                        'Insurance coverage',
+                        'Real-time tracking',
+                        'Professional handling'
+                    ]),
+                    'requirements' => json_encode([
+                        'Valid ID required for pickup',
+                        'Signature confirmation needed'
+                    ]),
+                    'pickup_available' => true,
+                    'delivery_available' => true,
+                    'slug' => 'electronics-delivery',
+                    'tags' => json_encode(['electronics', 'delivery', 'tech', 'secure']),
                     'is_active' => true,
                 ]);
 
@@ -131,8 +150,28 @@ class VendorProductServicesSeeder extends Seeder
                     'vendor_store_id' => $techHub->id,
                     'name' => 'Tech Setup Service',
                     'description' => 'Professional setup and installation of electronics at your location.',
+                    'category' => 'Electronics & Technology',
                     'price_min' => 500.00,
                     'price_max' => 3000.00,
+                    'duration_minutes' => 90,
+                    'rating' => 4.9,
+                    'total_reviews' => 76,
+                    'response_time' => 'Within 3 hours',
+                    'includes' => json_encode([
+                        'Complete device setup',
+                        'Software installation',
+                        'Basic tutorial',
+                        'Configuration backup'
+                    ]),
+                    'requirements' => json_encode([
+                        'Device must be new or reset',
+                        'Wi-Fi access required',
+                        'User accounts ready'
+                    ]),
+                    'pickup_available' => false,
+                    'delivery_available' => false,
+                    'slug' => 'tech-setup-service',
+                    'tags' => json_encode(['tech', 'setup', 'installation', 'onsite']),
                     'is_active' => true,
                 ]);
 
