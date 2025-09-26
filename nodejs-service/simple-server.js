@@ -1,8 +1,18 @@
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
+const { createServer } = require('http');
+const { Server } = require('socket.io');
 
 const app = express();
+const server = createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: ["http://localhost:8000", "http://localhost:5173", "http://127.0.0.1:8000"],
+    methods: ["GET", "POST"],
+    credentials: true
+  }
+});
 const PORT = 3003;
 
 // Middleware
@@ -60,21 +70,277 @@ mongoose.connect('mongodb+srv://grafrafraftorres28:y33CwzAkoHffENbQ@cluster0.0c5
 .then(() => console.log('✅ Connected to MongoDB'))
 .catch(err => console.log('❌ MongoDB error:', err));
 
-// Simple Message Schema
+// Enhanced Message Schema
 const messageSchema = new mongoose.Schema({
   sender_id: Number,
   sender_name: String,
+  sender_type: { type: String, default: 'customer' },
   recipient_id: Number, 
   recipient_name: String,
+  recipient_type: { type: String, default: 'vendor' },
   content: String,
+  message_type: { type: String, default: 'text' },
+  status: { type: String, default: 'sent' },
+  is_read: { type: Boolean, default: false },
   created_at: { type: Date, default: Date.now }
 });
 
 const Message = mongoose.model('Message', messageSchema);
 
+// Socket.IO connection handling
+const connectedUsers = new Map();
+
+io.on('connection', (socket) => {
+  console.log(`🔌 User connected: ${socket.id}`);
+  
+  // User joins with their ID and type
+  socket.on('join', (userData) => {
+    const { userId, userType, userName } = userData;
+    socket.userId = userId;
+    socket.userType = userType;
+    socket.userName = userName;
+    
+    connectedUsers.set(userId, {
+      socketId: socket.id,
+      userType,
+      userName,
+      online: true
+    });
+    
+    socket.join(`user_${userId}`);
+    console.log(`👤 User ${userName} (${userType}) joined room: user_${userId}`);
+    
+    // Broadcast user online status
+    socket.broadcast.emit('user_online', { userId, userType, userName });
+  });
+  
+  // Handle real-time message sending
+  socket.on('send_message', async (messageData) => {
+    try {
+      const message = new Message({
+        sender_id: messageData.sender_id,
+        sender_name: messageData.sender_name,
+        sender_type: messageData.sender_type || 'customer',
+        recipient_id: messageData.recipient_id,
+        recipient_name: messageData.recipient_name,
+        recipient_type: messageData.recipient_type || 'vendor',
+        content: messageData.content,
+        message_type: messageData.message_type || 'text'
+      });
+      
+      await message.save();
+      
+      const formattedMessage = {
+        _id: message._id,
+        sender: {
+          user_id: message.sender_id,
+          user_type: message.sender_type,
+          name: message.sender_name
+        },
+        recipient: {
+          user_id: message.recipient_id,
+          user_type: message.recipient_type,
+          name: message.recipient_name
+        },
+        content: message.content,
+        message_type: message.message_type,
+        status: message.status,
+        is_read: message.is_read,
+        created_at: message.created_at
+      };
+      
+      // Send to recipient if online
+      socket.to(`user_${messageData.recipient_id}`).emit('new_message', formattedMessage);
+      
+      // Send confirmation back to sender
+      socket.emit('message_sent', formattedMessage);
+      
+      console.log(`💬 Message sent from ${messageData.sender_name} to ${messageData.recipient_name}`);
+      
+    } catch (error) {
+      socket.emit('message_error', { error: error.message });
+      console.error('❌ Socket message error:', error);
+    }
+  });
+  
+  // Mark messages as read
+  socket.on('mark_as_read', async (data) => {
+    try {
+      const { messageIds, userId } = data;
+      await Message.updateMany(
+        { _id: { $in: messageIds }, recipient_id: userId },
+        { is_read: true }
+      );
+      
+      // Notify sender that messages were read
+      const messages = await Message.find({ _id: { $in: messageIds } });
+      messages.forEach(msg => {
+        socket.to(`user_${msg.sender_id}`).emit('messages_read', {
+          messageIds: [msg._id],
+          readBy: userId
+        });
+      });
+      
+    } catch (error) {
+      console.error('❌ Mark as read error:', error);
+    }
+  });
+  
+  socket.on('disconnect', () => {
+    if (socket.userId) {
+      connectedUsers.delete(socket.userId);
+      socket.broadcast.emit('user_offline', { 
+        userId: socket.userId, 
+        userType: socket.userType,
+        userName: socket.userName 
+      });
+      console.log(`👋 User ${socket.userName} disconnected`);
+    }
+  });
+});
+
 // Routes
 app.get('/health', (req, res) => {
   res.json({ status: 'OK', message: 'Simple messaging service working!' });
+});
+
+// Get user's conversations with unread counts
+app.get('/api/messages/conversations/:userId', async (req, res) => {
+  try {
+    const userId = parseInt(req.params.userId);
+    
+    // Get all conversations for this user
+    const conversations = await Message.aggregate([
+      {
+        $match: {
+          $or: [
+            { sender_id: userId },
+            { recipient_id: userId }
+          ]
+        }
+      },
+      {
+        $addFields: {
+          other_user_id: {
+            $cond: [
+              { $eq: ["$sender_id", userId] },
+              "$recipient_id",
+              "$sender_id"
+            ]
+          },
+          other_user_name: {
+            $cond: [
+              { $eq: ["$sender_id", userId] },
+              "$recipient_name",
+              "$sender_name"
+            ]
+          },
+          other_user_type: {
+            $cond: [
+              { $eq: ["$sender_id", userId] },
+              "$recipient_type",
+              "$sender_type"
+            ]
+          }
+        }
+      },
+      {
+        $group: {
+          _id: "$other_user_id",
+          other_user_name: { $first: "$other_user_name" },
+          other_user_type: { $first: "$other_user_type" },
+          last_message: { $last: "$content" },
+          last_message_time: { $last: "$created_at" },
+          total_messages: { $sum: 1 },
+          unread_count: {
+            $sum: {
+              $cond: [
+                { $and: [
+                  { $eq: ["$recipient_id", userId] },
+                  { $eq: ["$is_read", false] }
+                ]},
+                1,
+                0
+              ]
+            }
+          }
+        }
+      },
+      { $sort: { last_message_time: -1 } }
+    ]);
+    
+    res.json({
+      success: true,
+      conversations: conversations.map(conv => ({
+        user_id: conv._id,
+        user_name: conv.other_user_name,
+        user_type: conv.other_user_type,
+        last_message: conv.last_message,
+        last_message_time: conv.last_message_time,
+        total_messages: conv.total_messages,
+        unread_count: conv.unread_count
+      }))
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Get conversation between two users
+app.get('/api/messages/conversation/:user1/:user2', async (req, res) => {
+  try {
+    const user1 = parseInt(req.params.user1);
+    const user2 = parseInt(req.params.user2);
+    
+    const messages = await Message.find({
+      $or: [
+        { sender_id: user1, recipient_id: user2 },
+        { sender_id: user2, recipient_id: user1 }
+      ]
+    }).sort({ created_at: 1 });
+    
+    res.json({
+      success: true,
+      messages: messages.map(msg => ({
+        _id: msg._id,
+        sender: {
+          user_id: msg.sender_id,
+          user_type: msg.sender_type,
+          name: msg.sender_name
+        },
+        recipient: {
+          user_id: msg.recipient_id,
+          user_type: msg.recipient_type,
+          name: msg.recipient_name
+        },
+        content: msg.content,
+        message_type: msg.message_type,
+        status: msg.status,
+        is_read: msg.is_read,
+        created_at: msg.created_at
+      }))
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Get total unread message count for a user
+app.get('/api/messages/unread-count/:userId', async (req, res) => {
+  try {
+    const userId = parseInt(req.params.userId);
+    const unreadCount = await Message.countDocuments({
+      recipient_id: userId,
+      is_read: false
+    });
+    
+    res.json({
+      success: true,
+      unread_count: unreadCount
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
 app.get('/api/messages/user/:userId', async (req, res) => {
@@ -92,17 +358,18 @@ app.get('/api/messages/user/:userId', async (req, res) => {
         _id: msg._id,
         sender: {
           user_id: msg.sender_id,
-          user_type: 'customer',
+          user_type: msg.sender_type,
           name: msg.sender_name
         },
         recipient: {
           user_id: msg.recipient_id, 
-          user_type: 'vendor',
+          user_type: msg.recipient_type,
           name: msg.recipient_name
         },
         content: msg.content,
-        message_type: 'text',
-        status: 'sent',
+        message_type: msg.message_type,
+        status: msg.status,
+        is_read: msg.is_read,
         created_at: msg.created_at
       }))
     });
@@ -168,8 +435,9 @@ app.post('/api/messages/send', async (req, res) => {
   }
 });
 
-app.listen(PORT, '127.0.0.1', () => {
-  console.log(`🚀 Simple messaging service running on port ${PORT}`);
+server.listen(PORT, '127.0.0.1', () => {
+  console.log(`🚀 Enhanced messaging service with Socket.IO running on port ${PORT}`);
   console.log(`📍 Server bound to 127.0.0.1:${PORT}`);
   console.log(`⚡ Health check: http://127.0.0.1:${PORT}/health`);
+  console.log(`🔌 Socket.IO enabled for real-time messaging`);
 });
