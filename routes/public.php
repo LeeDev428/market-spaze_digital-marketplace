@@ -3,6 +3,8 @@
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Controllers\AppointmentController;
+use App\Models\VendorProductService;
+use App\Models\VendorStore;
 
 /*
 |--------------------------------------------------------------------------
@@ -48,52 +50,63 @@ Route::get('/services/{category}', function () {
 
 // Service Details
 Route::get('/service-details/{id}', function ($id) {
-    // Mock service data - replace with actual database query
-    $service = [
-        'id' => (int)$id,
-        'name' => 'Professional Electronics Repair',
-        'description' => 'Complete electronics repair service including smartphones, laptops, tablets, and gaming consoles. Our certified technicians use original parts and provide warranty on all repairs.',
-        'category' => 'Electronics & Technology',
-        'price_min' => 500,
-        'price_max' => 2000,
-        'duration_minutes' => 120,
-        'discount_percentage' => 15,
-        'popular' => true,
-        'includes' => [
-            'Free diagnostic assessment',
-            'Original parts replacement',
-            '90-day warranty',
-            'Pick-up and delivery service',
-            'Data recovery assistance'
-        ],
-        'requirements' => [
-            'Device must be accessible',
-            'Provide purchase receipt if available',
-            'Backup important data before service'
-        ],
-        'images' => [
-            '/img/electronics-repair-1.jpg',
-            '/img/electronics-repair-2.jpg',
-            '/img/electronics-repair-3.jpg'
+    // Fetch service from database with vendor relationship
+    $service = VendorProductService::with(['vendorStore', 'images'])
+        ->where('id', $id)
+        ->where('is_active', true)
+        ->first();
+    
+    if (!$service) {
+        abort(404, 'Service not found');
+    }
+    
+    // Transform service data for frontend
+    $serviceData = [
+        'id' => $service->id,
+        'name' => $service->name,
+        'description' => $service->description,
+        'category' => $service->category,
+        'price_min' => $service->price_min,
+        'price_max' => $service->price_max,
+        'duration_minutes' => $service->duration_minutes,
+        'discount_percentage' => $service->discount_percentage,
+        'popular' => $service->is_popular,
+        'includes' => json_decode($service->includes, true) ?? [],
+        'requirements' => json_decode($service->requirements, true) ?? [],
+        'rating' => $service->rating,
+        'total_reviews' => $service->total_reviews,
+        'has_warranty' => $service->has_warranty,
+        'warranty_days' => $service->warranty_days,
+        'pickup_available' => $service->pickup_available,
+        'delivery_available' => $service->delivery_available,
+        'emergency_service' => $service->emergency_service,
+        'special_instructions' => $service->special_instructions,
+        'tags' => json_decode($service->tags, true) ?? [],
+        'images' => $service->images ? $service->images->pluck('image_path')->toArray() : [
+            '/img/service-placeholder-1.jpg',
+            '/img/service-placeholder-2.jpg',
+            '/img/service-placeholder-3.jpg'
         ]
     ];
-
-    $vendor = [
-        'id' => 1,
-        'business_name' => 'TechFix Pro',
-        'description' => 'Professional electronics repair and maintenance services with over 10 years of experience',
-        'address' => '123 Tech Street, Digital City, Metro Manila',
-        'contact_phone' => '+63 912 345 6789',
-        'contact_email' => 'contact@techfixpro.com',
-        'rating' => 4.8,
-        'total_reviews' => 156,
-        'verified' => true,
-        'response_time' => 'Within 2 hours'
+    
+    // Transform vendor data for frontend
+    $vendorData = [
+        'id' => $service->vendorStore->id,
+        'business_name' => $service->vendorStore->business_name,
+        'description' => $service->vendorStore->description,
+        'address' => $service->vendorStore->address,
+        'contact_phone' => $service->vendorStore->contact_phone,
+        'contact_email' => $service->vendorStore->contact_email,
+        'rating' => $service->rating ?? 4.8, // Use service rating or default
+        'total_reviews' => $service->total_reviews ?? 0,
+        'verified' => true, // You can add a verified field to vendor_stores table later
+        'response_time' => $service->response_time ?? 'Within 24 hours',
+        'vendor_image' => $service->vendorStore->vendor_image
     ];
 
     return Inertia::render('servicedetails', [
-        'service' => $service,
-        'vendor' => $vendor
+        'service' => $serviceData,
+        'vendor' => $vendorData
     ]);
 })->name('service-details.show');
 
