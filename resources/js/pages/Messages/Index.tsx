@@ -16,8 +16,13 @@ import {
     Mail,
     MapPin,
     Clock,
-    RefreshCw
+    RefreshCw,
+    ChevronRight
 } from 'lucide-react';
+
+const breadcrumbs: BreadcrumbItem[] = [
+    { title: 'Messages', href: '/messages' },
+];
 
 interface Message {
     _id: string;
@@ -39,6 +44,20 @@ interface Message {
     created_at: string;
 }
 
+interface Vendor {
+    id: number;
+    business_name: string;
+    description: string;
+    address: string;
+    contact_phone: string;
+    contact_email: string;
+    rating?: number;
+    total_reviews?: number;
+    verified?: boolean;
+    response_time?: string;
+    business_type?: string;
+}
+
 interface PageProps extends Record<string, unknown> {
     auth: {
         user: {
@@ -52,270 +71,453 @@ interface PageProps extends Record<string, unknown> {
 
 export default function Messages() {
     const { auth } = usePage<PageProps>().props;
+    const [currentView, setCurrentView] = useState<'vendors' | 'conversation'>('vendors');
+    const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
+    const [vendors, setVendors] = useState<Vendor[]>([]);
     const [messages, setMessages] = useState<Message[]>([]);
     const [loading, setLoading] = useState(false);
     const [sending, setSending] = useState(false);
-    
-    // Send message form state
-    const [recipientId, setRecipientId] = useState('');
-    const [recipientType, setRecipientType] = useState('vendor');
-    const [recipientName, setRecipientName] = useState('');
     const [messageContent, setMessageContent] = useState('');
-    
-    // Load user's messages
-    const loadMessages = async () => {
+    const [searchQuery, setSearchQuery] = useState('');
+    // Get vendor ID from URL params
+    useEffect(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const vendorId = urlParams.get('vendor');
+        if (vendorId) {
+            // TODO: Fetch specific vendor and switch to conversation view
+            loadVendorById(parseInt(vendorId));
+        } else {
+            loadVendors();
+        }
+    }, []);
+
+    const loadVendors = async () => {
         setLoading(true);
         try {
-            const response = await fetch(`/api/messages/user/${auth.user.id}`, {
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
+            // Mock vendor data - replace with actual API call
+            const mockVendors: Vendor[] = [
+                {
+                    id: 1,
+                    business_name: "TechFix Pro",
+                    description: "Professional electronics repair and maintenance services",
+                    address: "123 Tech Street, Digital City",
+                    contact_phone: "+63 912 345 6789",
+                    contact_email: "contact@techfixpro.com",
+                    rating: 4.8,
+                    total_reviews: 156,
+                    verified: true,
+                    response_time: "Within 2 hours",
+                    business_type: "services"
                 },
-                credentials: 'same-origin' // Include session cookies
-            });
-            
-            const data = await response.json();
-            if (data.success) {
-                setMessages(data.messages);
-            }
+                {
+                    id: 2,
+                    business_name: "Home Services Plus",
+                    description: "Complete home maintenance and repair solutions",
+                    address: "456 Service Avenue, Metro Manila",
+                    contact_phone: "+63 917 234 5678",
+                    contact_email: "info@homeservicesplus.com",
+                    rating: 4.9,
+                    total_reviews: 203,
+                    verified: true,
+                    response_time: "Within 1 hour",
+                    business_type: "services"
+                },
+                {
+                    id: 3,
+                    business_name: "QuickFix Solutions",
+                    description: "Fast and reliable repair services for all your needs",
+                    address: "789 Repair Road, Quezon City",
+                    contact_phone: "+63 905 876 5432",
+                    contact_email: "support@quickfixsolutions.com",
+                    rating: 4.7,
+                    total_reviews: 98,
+                    verified: false,
+                    response_time: "Within 4 hours",
+                    business_type: "services"
+                }
+            ];
+            setVendors(mockVendors);
         } catch (error) {
-            console.error('Failed to load messages:', error);
+            console.error('Error loading vendors:', error);
+            setVendors([]);
         } finally {
             setLoading(false);
         }
     };
-    
-    // Send a new message
-    const sendMessage = async (e: React.FormEvent) => {
-        e.preventDefault();
-        
-        if (!recipientId || !recipientName || !messageContent.trim()) {
-            alert('Please fill in all fields');
-            return;
-        }
-        
-        setSending(true);
+
+    const loadVendorById = async (vendorId: number) => {
+        setLoading(true);
         try {
-            const response = await fetch('/api/messages/send', {
-                method: 'POST',
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-                },
-                credentials: 'same-origin', // Important: Include session cookies
-                body: JSON.stringify({
-                    recipient_id: parseInt(recipientId),
-                    recipient_type: recipientType,
-                    recipient_name: recipientName,
-                    content: messageContent,
-                    message_type: 'text'
-                })
-            });
-            
-            const data = await response.json();
-            if (data.success) {
-                // Clear form
-                setRecipientId('');
-                setRecipientName('');
-                setMessageContent('');
-                
-                // Reload messages
-                loadMessages();
-                
-                alert('Message sent successfully!');
-            } else {
-                alert(data.error || 'Failed to send message');
+            await loadVendors();
+            const vendor = vendors.find(v => v.id === vendorId);
+            if (vendor) {
+                setSelectedVendor(vendor);
+                setCurrentView('conversation');
+                await loadMessages(vendorId);
             }
         } catch (error) {
-            console.error('Failed to send message:', error);
-            alert('Failed to send message');
+            console.error('Error loading vendor:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const loadMessages = async (vendorId?: number) => {
+        if (!vendorId && !selectedVendor) return;
+        
+        const targetVendorId = vendorId || selectedVendor?.id;
+        setLoading(true);
+        try {
+            const response = await fetch(`/api/messages/user/${auth.user.id}`, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'same-origin',
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            console.log('Messages response:', data);
+            
+            if (data.messages && Array.isArray(data.messages)) {
+                // Filter messages for this vendor conversation
+                const vendorMessages = data.messages.filter((msg: Message) => 
+                    (msg.sender.user_id === targetVendorId && msg.recipient.user_id === auth.user.id) ||
+                    (msg.sender.user_id === auth.user.id && msg.recipient.user_id === targetVendorId)
+                );
+                setMessages(vendorMessages);
+            } else {
+                setMessages([]);
+            }
+        } catch (error) {
+            console.error('Error loading messages:', error);
+            setMessages([]);
+        } finally {
+            setLoading(false);
+        }
+    };
+    const sendMessage = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!messageContent.trim() || !selectedVendor) {
+            alert('Please enter a message');
+            return;
+        }
+
+        setSending(true);
+        try {
+            const messageData = {
+                sender_id: auth.user.id,
+                sender_type: auth.user.user_type || 'customer',
+                sender_name: auth.user.name,
+                recipient_id: selectedVendor.id,
+                recipient_type: 'vendor',
+                recipient_name: selectedVendor.business_name,
+                content: messageContent,
+                message_type: 'text'
+            };
+
+            console.log('Sending message:', messageData);
+
+            const response = await fetch('/messages/send', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify(messageData),
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Send message error response:', errorText);
+                throw new Error(`Failed to send message: ${errorText}`);
+            }
+
+            const result = await response.json();
+            console.log('Send message result:', result);
+
+            // Clear form
+            setMessageContent('');
+            
+            // Reload messages to show the new one
+            await loadMessages();
+            
+        } catch (error) {
+            console.error('Error sending message:', error);
+            alert(`Failed to send message: ${error instanceof Error ? error.message : 'Unknown error'}`);
         } finally {
             setSending(false);
         }
     };
-    
-    // Simple date formatting function
     const formatDate = (dateString: string) => {
-        const date = new Date(dateString);
-        return date.toLocaleString();
+        try {
+            const date = new Date(dateString);
+            return date.toLocaleString();
+        } catch (error) {
+            return dateString;
+        }
     };
-    
-    useEffect(() => {
-        loadMessages();
-    }, []);
-    
+
+    const filteredVendors = vendors.filter(vendor =>
+        vendor.business_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        vendor.description.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    const handleVendorSelect = async (vendor: Vendor) => {
+        setSelectedVendor(vendor);
+        setCurrentView('conversation');
+        await loadMessages(vendor.id);
+    };
+
     return (
-        <AppLayout>
+        <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Messages" />
             
-            <div className="py-6">
-                <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
-                    <div className="bg-white dark:bg-slate-800 overflow-hidden shadow-sm sm:rounded-lg">
-                        <div className="p-6 text-slate-900 dark:text-slate-100">
-                            
-                            {/* Header */}
-                            <div className="flex items-center justify-between mb-6">
-                                <div className="flex items-center space-x-3">
-                                    <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
-                                        <MessageSquare className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+            <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
+                <div className="container mx-auto px-4 py-8">
+                    <div className="max-w-6xl mx-auto">
+                        {/* Vendors List View */}
+                        {currentView === 'vendors' && (
+                            <div>
+                                {/* Header */}
+                                <div className="mb-8">
+                                    <div className="flex items-center mb-6">
+                                        <MessageSquare className="h-8 w-8 text-blue-500 mr-4" />
+                                        <div>
+                                            <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
+                                                Messages
+                                            </h1>
+                                            <p className="text-slate-600 dark:text-slate-400 mt-1">
+                                                Choose a vendor to start a conversation
+                                            </p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <h1 className="text-2xl font-bold">Messages</h1>
-                                        <p className="text-slate-600 dark:text-slate-400">Send and receive messages</p>
+
+                                    {/* Search */}
+                                    <div className="relative max-w-md">
+                                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={20} />
+                                        <input
+                                            type="text"
+                                            placeholder="Search vendors..."
+                                            value={searchQuery}
+                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                            className="w-full pl-10 pr-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-slate-800 dark:text-white transition-colors"
+                                        />
                                     </div>
                                 </div>
-                                <Button onClick={loadMessages} disabled={loading}>
-                                    {loading ? 'Loading...' : 'Refresh'}
-                                </Button>
+
+                                {/* Vendors Grid */}
+                                {loading ? (
+                                    <div className="flex items-center justify-center py-20">
+                                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+                                        <span className="ml-4 text-slate-600 dark:text-slate-400">Loading vendors...</span>
+                                    </div>
+                                ) : filteredVendors.length === 0 ? (
+                                    <div className="text-center py-20">
+                                        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 p-12 max-w-md mx-auto">
+                                            <Building2 className="h-16 w-16 text-slate-400 mx-auto mb-6" />
+                                            <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-3">
+                                                No vendors found
+                                            </h3>
+                                            <p className="text-slate-600 dark:text-slate-400">
+                                                Try adjusting your search or check back later.
+                                            </p>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                                        {filteredVendors.map((vendor) => (
+                                            <button
+                                                key={vendor.id}
+                                                onClick={() => handleVendorSelect(vendor)}
+                                                className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 p-6 hover:shadow-xl transition-all duration-300 text-left group"
+                                            >
+                                                <div className="flex items-start justify-between mb-4">
+                                                    <div className="flex-1">
+                                                        <div className="flex items-center gap-2 mb-2">
+                                                            <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+                                                                {vendor.business_name}
+                                                            </h3>
+                                                            {vendor.verified && (
+                                                                <BadgeCheck className="text-blue-500" size={20} />
+                                                            )}
+                                                        </div>
+                                                        <p className="text-slate-600 dark:text-slate-400 text-sm line-clamp-2">
+                                                            {vendor.description}
+                                                        </p>
+                                                    </div>
+                                                    <ChevronRight className="text-slate-400 group-hover:text-blue-500 group-hover:translate-x-1 transition-all" size={20} />
+                                                </div>
+
+                                                <div className="flex items-center gap-4 text-sm text-slate-600 dark:text-slate-400 mb-4">
+                                                    <div className="flex items-center">
+                                                        <Star className="text-yellow-400 fill-current mr-1" size={14} />
+                                                        <span>{vendor.rating || 4.8}</span>
+                                                    </div>
+                                                    <div className="flex items-center">
+                                                        <Users className="mr-1" size={14} />
+                                                        <span>{vendor.total_reviews || 0} reviews</span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex items-center text-sm text-slate-600 dark:text-slate-400 mb-3">
+                                                    <MapPin size={14} className="mr-1 flex-shrink-0" />
+                                                    <span className="line-clamp-1">{vendor.address}</span>
+                                                </div>
+
+                                                <div className="flex items-center text-sm text-slate-600 dark:text-slate-400">
+                                                    <Clock size={14} className="mr-1" />
+                                                    <span>Responds {vendor.response_time || 'within 24 hours'}</span>
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
-                            
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                
-                                {/* Send Message Form */}
-                                <Card>
-                                    <CardHeader>
-                                        <CardTitle className="flex items-center space-x-2">
-                                            <Send className="h-5 w-5" />
-                                            <span>Send New Message</span>
-                                        </CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <form onSubmit={sendMessage} className="space-y-4">
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <div>
-                                                    <label className="block text-sm font-medium mb-2">
-                                                        Recipient ID
-                                                    </label>
-                                                    <Input
-                                                        type="number"
-                                                        value={recipientId}
-                                                        onChange={(e) => setRecipientId(e.target.value)}
-                                                        placeholder="e.g., 2"
-                                                        required
-                                                    />
+                        )}
+                        {/* Conversation View */}
+                        {currentView === 'conversation' && selectedVendor && (
+                            <div>
+                                {/* Header */}
+                                <div className="mb-8">
+                                    <button
+                                        onClick={() => setCurrentView('vendors')}
+                                        className="flex items-center text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 mb-6 transition-colors group"
+                                    >
+                                        <ArrowLeft size={20} className="mr-2 group-hover:-translate-x-1 transition-transform" />
+                                        <span className="font-medium">Back to vendors</span>
+                                    </button>
+
+                                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 p-6">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center">
+                                                <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center mr-4">
+                                                    <Building2 className="text-white" size={24} />
                                                 </div>
                                                 <div>
-                                                    <label className="block text-sm font-medium mb-2">
-                                                        Recipient Type
-                                                    </label>
-                                                    <select 
-                                                        value={recipientType} 
-                                                        onChange={(e) => setRecipientType(e.target.value)}
-                                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                    >
-                                                        <option value="customer">Customer</option>
-                                                        <option value="vendor">Vendor</option>
-                                                        <option value="rider">Rider</option>
-                                                        <option value="admin">Admin</option>
-                                                    </select>
+                                                    <div className="flex items-center gap-2">
+                                                        <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
+                                                            {selectedVendor.business_name}
+                                                        </h2>
+                                                        {selectedVendor.verified && (
+                                                            <BadgeCheck className="text-blue-500" size={20} />
+                                                        )}
+                                                    </div>
+                                                    <p className="text-slate-600 dark:text-slate-400 text-sm">
+                                                        {selectedVendor.description}
+                                                    </p>
                                                 </div>
                                             </div>
-                                            
-                                            <div>
-                                                <label className="block text-sm font-medium mb-2">
-                                                    Recipient Name
-                                                </label>
-                                                <Input
-                                                    value={recipientName}
-                                                    onChange={(e) => setRecipientName(e.target.value)}
-                                                    placeholder="e.g., John Doe"
-                                                    required
-                                                />
+                                            <div className="flex items-center gap-3">
+                                                <a
+                                                    href={`tel:${selectedVendor.contact_phone}`}
+                                                    className="p-2 text-slate-600 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 transition-colors"
+                                                >
+                                                    <Phone size={20} />
+                                                </a>
+                                                <a
+                                                    href={`mailto:${selectedVendor.contact_email}`}
+                                                    className="p-2 text-slate-600 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 transition-colors"
+                                                >
+                                                    <Mail size={20} />
+                                                </a>
                                             </div>
-                                            
-                                            <div>
-                                                <label className="block text-sm font-medium mb-2">
-                                                    Message
-                                                </label>
-                                                <Textarea
-                                                    value={messageContent}
-                                                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setMessageContent(e.target.value)}
-                                                    placeholder="Type your message here..."
-                                                    rows={4}
-                                                    maxLength={1000}
-                                                    required
-                                                />
-                                                <p className="text-xs text-slate-500 mt-1">
-                                                    {messageContent.length}/1000 characters
-                                                </p>
-                                            </div>
-                                            
-                                            <Button type="submit" disabled={sending} className="w-full">
-                                                {sending ? 'Sending...' : 'Send Message'}
-                                            </Button>
-                                        </form>
-                                    </CardContent>
-                                </Card>
-                                
-                                {/* Messages List */}
-                                <Card>
-                                    <CardHeader>
-                                        <CardTitle className="flex items-center space-x-2">
-                                            <Users className="h-5 w-5" />
-                                            <span>Your Messages ({messages.length})</span>
-                                        </CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Messages */}
+                                <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 mb-6">
+                                    <div className="p-6 border-b border-slate-200 dark:border-slate-700">
+                                        <div className="flex items-center justify-between">
+                                            <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+                                                Conversation
+                                            </h3>
+                                            <button
+                                                onClick={() => loadMessages()}
+                                                disabled={loading}
+                                                className="p-2 text-slate-600 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 transition-colors"
+                                            >
+                                                <RefreshCw className={`${loading ? 'animate-spin' : ''}`} size={20} />
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div className="p-6">
                                         {loading ? (
-                                            <div className="text-center py-8">
-                                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                                                <p className="mt-2 text-slate-600 dark:text-slate-400">Loading messages...</p>
+                                            <div className="flex items-center justify-center py-8">
+                                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                                                <span className="ml-2 text-slate-600 dark:text-slate-400">Loading messages...</span>
                                             </div>
                                         ) : messages.length === 0 ? (
                                             <div className="text-center py-8">
                                                 <MessageSquare className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-                                                <p className="text-slate-600 dark:text-slate-400">No messages yet</p>
-                                                <p className="text-sm text-slate-500 dark:text-slate-500">Send your first message to get started</p>
+                                                <p className="text-slate-600 dark:text-slate-400 mb-2">No messages yet</p>
+                                                <p className="text-sm text-slate-500">Start the conversation by sending a message below</p>
                                             </div>
                                         ) : (
                                             <div className="space-y-4 max-h-96 overflow-y-auto">
                                                 {messages.map((message) => (
                                                     <div 
                                                         key={message._id}
-                                                        className={`p-4 rounded-lg border ${
-                                                            message.sender.user_id === auth.user.id
-                                                                ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 ml-8'
-                                                                : 'bg-slate-50 dark:bg-slate-700 border-slate-200 dark:border-slate-600 mr-8'
-                                                        }`}
+                                                        className={`flex ${message.sender.user_id === auth.user.id ? 'justify-end' : 'justify-start'}`}
                                                     >
-                                                        <div className="flex items-start justify-between mb-2">
-                                                            <div className="flex items-center space-x-2">
-                                                                <User className="h-4 w-4 text-slate-500" />
-                                                                <span className="text-sm font-medium">
-                                                                    {message.sender.user_id === auth.user.id ? 'You' : message.sender.name}
-                                                                </span>
-                                                                <span className="text-xs text-slate-500">
-                                                                    ({message.sender.user_type})
-                                                                </span>
-                                                                {message.sender.user_id !== auth.user.id && (
-                                                                    <span className="text-xs text-slate-500">
-                                                                        to {message.recipient.name}
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                            <span className="text-xs text-slate-500">
-                                                                {formatDate(message.created_at)}
-                                                            </span>
-                                                        </div>
-                                                        <p className="text-slate-700 dark:text-slate-300">{message.content}</p>
-                                                        <div className="flex justify-between items-center mt-2">
-                                                            <span className={`text-xs px-2 py-1 rounded-full ${
-                                                                message.status === 'sent' ? 'bg-yellow-100 text-yellow-800' :
-                                                                message.status === 'delivered' ? 'bg-blue-100 text-blue-800' :
-                                                                'bg-green-100 text-green-800'
+                                                        <div className={`max-w-xs lg:max-w-md px-4 py-3 rounded-2xl ${
+                                                            message.sender.user_id === auth.user.id
+                                                                ? 'bg-blue-500 text-white'
+                                                                : 'bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white'
+                                                        }`}>
+                                                            <p className="text-sm">{message.content}</p>
+                                                            <div className={`text-xs mt-2 ${
+                                                                message.sender.user_id === auth.user.id
+                                                                    ? 'text-blue-100'
+                                                                    : 'text-slate-500 dark:text-slate-400'
                                                             }`}>
-                                                                {message.status}
-                                                            </span>
+                                                                {formatDate(message.created_at)}
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 ))}
                                             </div>
                                         )}
-                                    </CardContent>
-                                </Card>
+                                    </div>
+                                </div>
+
+                                {/* Send Message Form */}
+                                <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700">
+                                    <form onSubmit={sendMessage} className="p-6">
+                                        <div className="flex gap-4">
+                                            <div className="flex-1">
+                                                <textarea
+                                                    placeholder="Type your message..."
+                                                    value={messageContent}
+                                                    onChange={(e) => setMessageContent(e.target.value)}
+                                                    rows={3}
+                                                    className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-slate-700 dark:text-white resize-none"
+                                                />
+                                                <div className="text-xs text-slate-500 mt-2">
+                                                    {messageContent.length}/1000 characters
+                                                </div>
+                                            </div>
+                                            <button
+                                                type="submit"
+                                                disabled={sending || !messageContent.trim()}
+                                                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:from-slate-400 disabled:to-slate-400 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 flex items-center justify-center self-start"
+                                            >
+                                                <Send size={20} className="mr-2" />
+                                                {sending ? 'Sending...' : 'Send'}
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
                             </div>
-                        </div>
+                        )}
                     </div>
                 </div>
             </div>
