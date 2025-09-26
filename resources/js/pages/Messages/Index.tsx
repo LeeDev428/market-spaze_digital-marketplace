@@ -1,11 +1,23 @@
 import { useState, useEffect } from 'react';
 import { Head, usePage } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { MessageSquare, Send, User, Users } from 'lucide-react';
+import { type BreadcrumbItem } from '@/types';
+import { 
+    MessageSquare, 
+    Send, 
+    User, 
+    Users, 
+    ArrowLeft,
+    Search,
+    Star,
+    Building2,
+    BadgeCheck,
+    Phone,
+    Mail,
+    MapPin,
+    Clock,
+    RefreshCw
+} from 'lucide-react';
 
 interface Message {
     _id: string;
