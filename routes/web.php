@@ -92,3 +92,6 @@ Route::get('/debug-rider-dashboard-direct', function () {
         'config_auth_guards' => config('auth.guards'),
     ]);
 });
+
+// Include Messages routes
+require __DIR__.'/messages.php';
