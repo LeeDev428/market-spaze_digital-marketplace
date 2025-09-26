@@ -109,8 +109,32 @@ export function AppSidebarHeader({ breadcrumbs = [] }: { breadcrumbs?: Breadcrum
                 <Breadcrumbs breadcrumbs={breadcrumbs} />
             </div>
             
-            {/* Message Notification Icon */}
-            <div className="flex items-center gap-2">
+            {/* Notification Icons */}
+            <div className="flex items-center gap-3">
+                {/* Appointment Notifications Bell */}
+                <div className="relative">
+                    <button
+                        ref={notificationBellRef}
+                        onClick={() => setIsNotificationOpen(!isNotificationOpen)}
+                        className="relative inline-flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 transition-colors h-10 w-10"
+                        title={notificationCount > 0 ? `${notificationCount} appointment notifications` : 'Appointment notifications'}
+                    >
+                        <Bell className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                        {notificationCount > 0 && (
+                            <span className="absolute -top-1 -right-1 min-w-[20px] h-[20px] bg-red-500 text-white text-xs rounded-full flex items-center justify-center px-1 font-bold border-2 border-white dark:border-gray-800">
+                                {notificationCount > 99 ? '99+' : notificationCount}
+                            </span>
+                        )}
+                    </button>
+
+                    <NotificationDropdown
+                        isOpen={isNotificationOpen}
+                        onClose={() => setIsNotificationOpen(false)}
+                        triggerRef={notificationBellRef}
+                    />
+                </div>
+
+                {/* Message Notification Icon */}
                 <Link
                     href="/messages"
                     className="relative inline-flex items-center justify-center rounded-full bg-blue-100 hover:bg-blue-200 dark:bg-blue-900 dark:hover:bg-blue-800 transition-colors h-10 w-10"
