@@ -23,10 +23,39 @@ class VendorProductServicesSeeder extends Seeder
             
             VendorProductService::create([
                 'vendor_store_id' => $freshMart->id,
-                'name' => 'Grocery Delivery',
-                'description' => 'Fresh groceries delivered to your doorstep. Including fruits, vegetables, dairy, and pantry items.',
+                'name' => 'Professional Electronics Repair',
+                'description' => 'Complete electronics repair service including smartphones, laptops, tablets, and gaming consoles. Our certified technicians use original parts and provide warranty on all repairs.',
+                'category' => 'Electronics & Technology',
                 'price_min' => 500.00,
-                'price_max' => 5000.00,
+                'price_max' => 2000.00,
+                'duration_minutes' => 120,
+                'discount_percentage' => 15.00,
+                'is_popular' => true,
+                'is_guaranteed' => true,
+                'is_professional' => true,
+                'rating' => 4.8,
+                'total_reviews' => 156,
+                'response_time' => 'Within 2 hours',
+                'includes' => json_encode([
+                    'Free diagnostic assessment',
+                    'Original parts replacement',
+                    '90-day warranty',
+                    'Pick-up and delivery service',
+                    'Data recovery assistance'
+                ]),
+                'requirements' => json_encode([
+                    'Device must be accessible',
+                    'Provide purchase receipt if available',
+                    'Backup important data before service'
+                ]),
+                'has_warranty' => true,
+                'warranty_days' => 90,
+                'pickup_available' => true,
+                'delivery_available' => true,
+                'emergency_service' => false,
+                'special_instructions' => 'Please ensure device is charged and accessible before technician arrival.',
+                'slug' => 'professional-electronics-repair',
+                'tags' => json_encode(['electronics', 'repair', 'smartphone', 'laptop', 'warranty']),
                 'is_active' => true,
             ]);
 
