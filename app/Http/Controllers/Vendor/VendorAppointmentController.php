@@ -31,7 +31,7 @@ class VendorAppointmentController extends Controller
         
         // Get recent appointments for sidebar
         $recentAppointments = Appointment::where('vendor_store_id', $vendorStore->id)
-            ->with(['vendorStore', 'rider']) // Load all necessary relationships
+            ->with(['vendorStore', 'rider', 'vendorProductService.images']) // Load all necessary relationships including service and images
             ->whereDate('appointment_date', '>=', now())
             ->orderBy('appointment_date')
             ->orderBy('appointment_time')
