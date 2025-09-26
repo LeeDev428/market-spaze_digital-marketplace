@@ -96,6 +96,7 @@ export default function VendorLayout({ children }: { children: React.ReactNode }
     const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
     const [searchQuery, setSearchQuery] = useState('');
     const [userMenuOpen, setUserMenuOpen] = useState(false);
+    const [unreadCount, setUnreadCount] = useState(0);
 
     useEffect(() => {
         const handleResize = () => setWindowWidth(window.innerWidth);
@@ -117,6 +118,28 @@ export default function VendorLayout({ children }: { children: React.ReactNode }
     useEffect(() => {
         if (!isMobile) setSidebarOpen(false);
     }, [isMobile]);
+
+    // Fetch unread messages count
+    useEffect(() => {
+        const fetchUnreadCount = async () => {
+            if (auth?.user?.id) {
+                try {
+                    const response = await fetch(`http://127.0.0.1:3003/api/messages/unread-count/${auth.user.id}`);
+                    const data = await response.json();
+                    if (data.success) {
+                        setUnreadCount(data.unread_count);
+                    }
+                } catch (error) {
+                    console.error('Failed to fetch unread count:', error);
+                }
+            }
+        };
+
+        fetchUnreadCount();
+        // Poll for updates every 30 seconds
+        const interval = setInterval(fetchUnreadCount, 30000);
+        return () => clearInterval(interval);
+    }, [auth?.user?.id]);
 
     const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
 
@@ -290,11 +313,18 @@ export default function VendorLayout({ children }: { children: React.ReactNode }
                                 </button>
 
                                 {/* Messages */}
-                                <button className="relative p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                                <Link 
+                                    href="/vendor/messages" 
+                                    className="relative p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors inline-block"
+                                >
                                     <MessageSquare size={20} className="text-slate-600 dark:text-slate-400" />
-                                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-blue-500 text-white text-xs 
-                                                   rounded-full flex items-center justify-center">2</span>
-                                </button>
+                                    {unreadCount > 0 && (
+                                        <span className="absolute -top-1 -right-1 w-5 h-5 bg-blue-500 text-white text-xs 
+                                                       rounded-full flex items-center justify-center min-w-[20px]">
+                                            {unreadCount > 99 ? '99+' : unreadCount}
+                                        </span>
+                                    )}
+                                </Link>
 
                                 {/* User Menu */}
                                 <div className="relative">
