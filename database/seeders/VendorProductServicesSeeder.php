@@ -271,8 +271,26 @@ class VendorProductServicesSeeder extends Seeder
                     'vendor_store_id' => $bellaFashion->id,
                     'name' => 'Fitting Service',
                     'description' => 'Professional fitting and alteration service for perfect clothing fit.',
+                    'category' => 'Fashion & Lifestyle',
                     'price_min' => 300.00,
                     'price_max' => 2000.00,
+                    'duration_minutes' => 45,
+                    'rating' => 4.6,
+                    'total_reviews' => 67,
+                    'response_time' => 'Within 3 hours',
+                    'includes' => json_encode([
+                        'Professional fitting',
+                        'Basic alterations',
+                        'Style advice'
+                    ]),
+                    'requirements' => json_encode([
+                        'Bring garments to fit',
+                        'Appointment required'
+                    ]),
+                    'pickup_available' => true,
+                    'delivery_available' => true,
+                    'slug' => 'fitting-service',
+                    'tags' => json_encode(['fitting', 'alteration', 'fashion', 'tailoring']),
                     'is_active' => true,
                 ]);
             }
@@ -284,8 +302,25 @@ class VendorProductServicesSeeder extends Seeder
                     'vendor_store_id' => $store->id,
                     'name' => 'Customer Consultation',
                     'description' => 'Free consultation to help customers choose the right products or services.',
+                    'category' => 'Consultation & Support',
                     'price_min' => 0.00,
                     'price_max' => 500.00,
+                    'duration_minutes' => 30,
+                    'rating' => 4.8,
+                    'total_reviews' => 25,
+                    'response_time' => 'Within 1 hour',
+                    'includes' => json_encode([
+                        'Expert advice',
+                        'Product recommendations',
+                        'Service guidance'
+                    ]),
+                    'requirements' => json_encode([
+                        'No requirements'
+                    ]),
+                    'pickup_available' => false,
+                    'delivery_available' => false,
+                    'slug' => 'customer-consultation-' . $store->id,
+                    'tags' => json_encode(['consultation', 'advice', 'support', 'free']),
                     'is_active' => true,
                 ]);
             }
