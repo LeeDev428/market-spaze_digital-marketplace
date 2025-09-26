@@ -142,7 +142,9 @@ class CustomerDashboardController extends Controller
         ]);
 
         $user = Auth::user();
-        $user->update($request->only(['name', 'email']));
+        $user->name = $request->name;
+        $user->email = $request->email;
+        $user->save();
 
         return redirect()->route('customer.profile')->with('success', 'Profile updated successfully');
     }
