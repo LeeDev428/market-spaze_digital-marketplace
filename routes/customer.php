@@ -67,6 +67,7 @@ Route::middleware(['auth', 'verified', 'customer'])->name('customer.')->group(fu
         $vendors = VendorStore::where('is_active', true)
             ->select([
                 'id',
+                'user_id',
                 'business_name',
                 'description',
                 'address',
@@ -82,7 +83,7 @@ Route::middleware(['auth', 'verified', 'customer'])->name('customer.')->group(fu
             ->get()
             ->map(function ($vendor) {
                 return [
-                    'id' => $vendor->id,
+                    'id' => $vendor->user_id, // Use the User ID instead of VendorStore ID
                     'business_name' => $vendor->business_name,
                     'description' => $vendor->description,
                     'address' => $vendor->address,
