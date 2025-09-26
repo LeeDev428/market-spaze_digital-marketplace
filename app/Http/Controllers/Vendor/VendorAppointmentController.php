@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 
 
@@ -24,6 +25,17 @@ class VendorAppointmentController extends Controller
         if (!$vendorStore) {
             return redirect()->route('vendor.dashboard')->with('error', 'Please complete your store setup first.');
         }
+
+        // Debug: Log vendor store info
+        Log::info('🏪 Vendor Store Info:', [
+            'user_id' => auth()->user()->id,
+            'vendor_store_id' => $vendorStore->id,
+            'store_name' => $vendorStore->business_name
+        ]);
+
+        // Debug: Count total appointments for this vendor
+        $totalAppointments = Appointment::where('vendor_store_id', $vendorStore->id)->count();
+        Log::info('📅 Total Appointments in DB:', ['count' => $totalAppointments]);
 
         // Get current month appointments with counts
         $currentMonth = now();
