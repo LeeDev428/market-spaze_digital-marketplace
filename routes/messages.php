@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use App\Models\Message;
 
 /*
 |--------------------------------------------------------------------------
@@ -37,17 +38,59 @@ Route::middleware(['web'])->group(function () {
     // Get user's messages
     Route::get('/messages/user/{userId}', function (Request $request, $userId) {
         try {
-            $response = Http::get("http://127.0.0.1:3003/api/messages/user/{$userId}", [
+            $response = Http::timeout(5)->get("http://127.0.0.1:3003/api/messages/user/{$userId}", [
                 'page' => $request->get('page', 1),
                 'limit' => $request->get('limit', 20)
             ]);
             
-            return response()->json($response->json());
+            if ($response->successful()) {
+                return response()->json($response->json());
+            }
+        } catch (\Exception $e) {
+            Log::warning('MongoDB service unavailable, using Laravel database: ' . $e->getMessage());
+        }
+        
+        // Fallback to Laravel database
+        try {
+            $messages = \App\Models\Message::where(function($query) use ($userId) {
+                $query->where('sender_id', $userId)
+                      ->orWhere('recipient_id', $userId);
+            })
+            ->orderBy('created_at', 'desc')
+            ->paginate($request->get('limit', 20));
+
+            return response()->json([
+                'success' => true,
+                'messages' => $messages->items()->map(function($message) {
+                    return [
+                        '_id' => $message->id,
+                        'sender' => [
+                            'user_id' => $message->sender_id,
+                            'user_type' => $message->sender_type,
+                            'name' => $message->sender_name
+                        ],
+                        'recipient' => [
+                            'user_id' => $message->recipient_id,
+                            'user_type' => $message->recipient_type,
+                            'name' => $message->recipient_name
+                        ],
+                        'content' => $message->content,
+                        'message_type' => $message->message_type,
+                        'status' => $message->status,
+                        'created_at' => $message->created_at->toISOString()
+                    ];
+                }),
+                'pagination' => [
+                    'current_page' => $messages->currentPage(),
+                    'total_pages' => $messages->lastPage(),
+                    'total' => $messages->total()
+                ]
+            ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'error' => 'Messaging service unavailable: ' . $e->getMessage()
-            ], 503);
+                'error' => 'Failed to load messages: ' . $e->getMessage()
+            ], 500);
         }
     });
     
@@ -116,23 +159,58 @@ Route::middleware(['web'])->group(function () {
                 'message_data' => $messageData
             ]);
             
-            $response = Http::post('http://127.0.0.1:3003/api/messages/send', $messageData);
-            
-            if ($response->successful()) {
-                Log::info('Message sent successfully to MongoDB with real name:', [
-                    'sender_name' => $user->name
-                ]);
-                return response()->json($response->json());
-            } else {
-                Log::error('Node.js service error:', [
-                    'status' => $response->status(),
-                    'body' => $response->body()
-                ]);
-                return response()->json([
-                    'success' => false,
-                    'error' => 'Failed to send message to messaging service'
-                ], 500);
+            try {
+                $response = Http::timeout(5)->post('http://127.0.0.1:3003/api/messages/send', $messageData);
+                
+                if ($response->successful()) {
+                    Log::info('Message sent successfully to MongoDB with real name:', [
+                        'sender_name' => $user->name
+                    ]);
+                    return response()->json($response->json());
+                }
+            } catch (\Exception $nodeError) {
+                Log::warning('Node.js service unavailable, storing in Laravel database: ' . $nodeError->getMessage());
             }
+            
+            // Fallback to Laravel database
+            $message = \App\Models\Message::create([
+                'sender_id' => $messageData['sender_id'],
+                'sender_type' => $messageData['sender_type'],
+                'sender_name' => $messageData['sender_name'],
+                'recipient_id' => $messageData['recipient_id'],
+                'recipient_type' => $messageData['recipient_type'],
+                'recipient_name' => $messageData['recipient_name'],
+                'content' => $messageData['content'],
+                'message_type' => $messageData['message_type'],
+                'status' => 'sent'
+            ]);
+
+            Log::info('Message stored in Laravel database:', [
+                'message_id' => $message->id,
+                'sender_name' => $message->sender_name
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Message sent successfully',
+                'data' => [
+                    '_id' => $message->id,
+                    'sender' => [
+                        'user_id' => $message->sender_id,
+                        'user_type' => $message->sender_type,
+                        'name' => $message->sender_name
+                    ],
+                    'recipient' => [
+                        'user_id' => $message->recipient_id,
+                        'user_type' => $message->recipient_type,
+                        'name' => $message->recipient_name
+                    ],
+                    'content' => $message->content,
+                    'message_type' => $message->message_type,
+                    'status' => $message->status,
+                    'created_at' => $message->created_at->toISOString()
+                ]
+            ]);
             
         } catch (\Exception $e) {
             Log::error('Laravel message send error:', [
