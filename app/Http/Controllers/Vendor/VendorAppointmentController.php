@@ -26,16 +26,12 @@ class VendorAppointmentController extends Controller
             return redirect()->route('vendor.dashboard')->with('error', 'Please complete your store setup first.');
         }
 
-        // Debug: Log vendor store info
-        Log::info('🏪 Vendor Store Info:', [
-            'user_id' => auth()->user()->id,
-            'vendor_store_id' => $vendorStore->id,
-            'store_name' => $vendorStore->business_name
-        ]);
-
+        // Debug: Simple debug
+        error_log('🏪 Vendor Store ID: ' . $vendorStore->id);
+        
         // Debug: Count total appointments for this vendor
         $totalAppointments = Appointment::where('vendor_store_id', $vendorStore->id)->count();
-        Log::info('📅 Total Appointments in DB:', ['count' => $totalAppointments]);
+        error_log('📅 Total Appointments in DB: ' . $totalAppointments);
 
         // Get current month appointments with counts
         $currentMonth = now();
