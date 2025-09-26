@@ -208,6 +208,14 @@ class VendorStoreController extends Controller
             'productServices.*.description' => 'required|string',
             'productServices.*.priceMin' => 'required|numeric|min:0',
             'productServices.*.priceMax' => 'required|numeric|min:0',
+            'productServices.*.category' => 'required|string|max:255',
+            'productServices.*.durationMinutes' => 'nullable|integer|min:0',
+            'productServices.*.discountPercentage' => 'nullable|numeric|min:0|max:100',
+            'productServices.*.includes' => 'nullable|string',
+            'productServices.*.requirements' => 'nullable|string',
+            'productServices.*.warrantyInfo' => 'nullable|string|max:255',
+            'productServices.*.pickupAvailable' => 'boolean',
+            'productServices.*.deliveryAvailable' => 'boolean',
         ]);
 
         // Handle logo upload
@@ -241,15 +249,34 @@ class VendorStoreController extends Controller
         // Delete existing products/services
         $vendorStore->productsServices()->delete();
 
-        // Create new products/services
+        // Create new products/services with enhanced fields
         foreach ($validated['productServices'] as $productService) {
             if (!empty(trim($productService['name']))) {
+                // Parse includes and requirements arrays (from textarea strings)
+                $includes = [];
+                if (!empty($productService['includes'])) {
+                    $includes = array_filter(array_map('trim', explode("\n", $productService['includes'])));
+                }
+
+                $requirements = [];
+                if (!empty($productService['requirements'])) {
+                    $requirements = array_filter(array_map('trim', explode("\n", $productService['requirements'])));
+                }
+
                 VendorProductService::create([
                     'vendor_store_id' => $vendorStore->id,
                     'name' => $productService['name'],
                     'description' => $productService['description'],
                     'price_min' => $productService['priceMin'],
                     'price_max' => $productService['priceMax'],
+                    'category' => $productService['category'],
+                    'duration_minutes' => $productService['durationMinutes'] ?: null,
+                    'discount_percentage' => $productService['discountPercentage'] ?: 0,
+                    'includes' => !empty($includes) ? $includes : null,
+                    'requirements' => !empty($requirements) ? $requirements : null,
+                    'warranty_info' => $productService['warrantyInfo'] ?: null,
+                    'pickup_available' => $productService['pickupAvailable'] ?? false,
+                    'delivery_available' => $productService['deliveryAvailable'] ?? false,
                     'is_active' => true
                 ]);
             }
