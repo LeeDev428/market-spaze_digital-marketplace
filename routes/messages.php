@@ -15,6 +15,12 @@ use App\Models\Message;
 // Use web middleware group to handle session auth properly
 Route::middleware(['web'])->group(function () {
     
+    // Enhanced message routes using MessageController
+    Route::get('/messages/conversations/{userId}', [App\Http\Controllers\MessageController::class, 'getConversations']);
+    Route::get('/messages/unread-count/{userId}', [App\Http\Controllers\MessageController::class, 'getUnreadCount']);
+    Route::get('/messages/conversation/{user1}/{user2}', [App\Http\Controllers\MessageController::class, 'getConversation']);
+    Route::post('/messages/send', [App\Http\Controllers\MessageController::class, 'sendMessage']);
+    
     // Debug authentication route
     Route::get('/messages/debug-auth', function (Request $request) {
         $user = $request->user();
@@ -240,6 +246,155 @@ Route::middleware(['web'])->group(function () {
                 'success' => false,
                 'error' => 'Messaging service unavailable'
             ], 503);
+        }
+    });
+
+    // Get conversations for a user
+    Route::get('/messages/conversations/{userId}', function (Request $request, $userId) {
+        try {
+            $response = Http::timeout(5)->get("http://127.0.0.1:3003/api/messages/conversations/{$userId}");
+            
+            if ($response->successful()) {
+                return response()->json($response->json());
+            }
+        } catch (\Exception $e) {
+            Log::warning('MongoDB service unavailable, using Laravel database: ' . $e->getMessage());
+        }
+
+        // Fallback to Laravel database
+        try {
+            // Get conversations with message counts using raw SQL for better performance
+            $conversations = \Illuminate\Support\Facades\DB::select("
+                SELECT 
+                    CASE 
+                        WHEN sender_id = ? THEN recipient_id 
+                        ELSE sender_id 
+                    END as user_id,
+                    CASE 
+                        WHEN sender_id = ? THEN recipient_name 
+                        ELSE sender_name 
+                    END as user_name,
+                    CASE 
+                        WHEN sender_id = ? THEN recipient_type 
+                        ELSE sender_type 
+                    END as user_type,
+                    MAX(created_at) as last_message_time,
+                    (SELECT content FROM messages m2 
+                     WHERE ((m2.sender_id = ? AND m2.recipient_id = user_id) 
+                            OR (m2.sender_id = user_id AND m2.recipient_id = ?))
+                     ORDER BY created_at DESC LIMIT 1) as last_message,
+                    COUNT(*) as total_messages,
+                    SUM(CASE WHEN is_read = 0 AND recipient_id = ? THEN 1 ELSE 0 END) as unread_count
+                FROM messages 
+                WHERE sender_id = ? OR recipient_id = ?
+                GROUP BY user_id, user_name, user_type
+                ORDER BY last_message_time DESC
+            ", [$userId, $userId, $userId, $userId, $userId, $userId, $userId, $userId]);
+
+            return response()->json([
+                'success' => true,
+                'conversations' => collect($conversations)->map(function($conv) {
+                    return [
+                        'user_id' => $conv->user_id,
+                        'user_name' => $conv->user_name,
+                        'user_type' => $conv->user_type,
+                        'last_message' => $conv->last_message,
+                        'last_message_time' => $conv->last_message_time,
+                        'total_messages' => $conv->total_messages,
+                        'unread_count' => $conv->unread_count
+                    ];
+                })
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to load conversations: ' . $e->getMessage()
+            ], 500);
+        }
+    });
+
+    // Get conversation between two users
+    Route::get('/messages/conversation/{user1}/{user2}', function (Request $request, $user1, $user2) {
+        try {
+            $response = Http::timeout(5)->get("http://127.0.0.1:3003/api/messages/conversation/{$user1}/{$user2}");
+            
+            if ($response->successful()) {
+                return response()->json($response->json());
+            }
+        } catch (\Exception $e) {
+            Log::warning('MongoDB service unavailable, using Laravel database: ' . $e->getMessage());
+        }
+
+        // Fallback to Laravel database
+        try {
+            $messages = \App\Models\Message::where(function($query) use ($user1, $user2) {
+                $query->where(function($q) use ($user1, $user2) {
+                    $q->where('sender_id', $user1)->where('recipient_id', $user2);
+                })->orWhere(function($q) use ($user1, $user2) {
+                    $q->where('sender_id', $user2)->where('recipient_id', $user1);
+                });
+            })
+            ->orderBy('created_at', 'asc')
+            ->get();
+
+            return response()->json([
+                'success' => true,
+                'messages' => $messages->map(function($message) {
+                    return [
+                        '_id' => $message->id,
+                        'sender' => [
+                            'user_id' => $message->sender_id,
+                            'user_type' => $message->sender_type,
+                            'name' => $message->sender_name
+                        ],
+                        'recipient' => [
+                            'user_id' => $message->recipient_id,
+                            'user_type' => $message->recipient_type,
+                            'name' => $message->recipient_name
+                        ],
+                        'content' => $message->content,
+                        'message_type' => $message->message_type,
+                        'status' => $message->status,
+                        'is_read' => $message->is_read,
+                        'created_at' => $message->created_at->toISOString()
+                    ];
+                })
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to load conversation: ' . $e->getMessage()
+            ], 500);
+        }
+    });
+
+    // Get unread message count for a user
+    Route::get('/messages/unread-count/{userId}', function (Request $request, $userId) {
+        try {
+            $response = Http::timeout(5)->get("http://127.0.0.1:3003/api/messages/unread-count/{$userId}");
+            
+            if ($response->successful()) {
+                return response()->json($response->json());
+            }
+        } catch (\Exception $e) {
+            Log::warning('MongoDB service unavailable, using Laravel database: ' . $e->getMessage());
+        }
+
+        // Fallback to Laravel database
+        try {
+            $unreadCount = \App\Models\Message::where('recipient_id', $userId)
+                ->where('is_read', false)
+                ->count();
+
+            return response()->json([
+                'success' => true,
+                'unread_count' => $unreadCount
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to get unread count: ' . $e->getMessage()
+            ], 500);
         }
     });
 });
