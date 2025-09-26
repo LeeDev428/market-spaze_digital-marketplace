@@ -49,7 +49,7 @@ class VendorStoreController extends Controller
      */
     public function create()
     {
-        return Inertia::render('vendor/store/Create_store');
+        return Inertia::render('vendor/store/Create_store_working');
     }
 
     /**
