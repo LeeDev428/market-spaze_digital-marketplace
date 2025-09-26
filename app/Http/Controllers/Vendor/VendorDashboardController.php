@@ -26,7 +26,7 @@ class VendorDashboardController extends Controller
         $totalServices = VendorProductService::whereIn('vendor_store_id', $stores->pluck('id'))->count();
         
         // Get appointments/orders data
-        $appointmentsQuery = Appointment::whereIn('vendor_product_service_id', 
+        $appointmentsQuery = Appointment::whereIn('service_id', 
             VendorProductService::whereIn('vendor_store_id', $stores->pluck('id'))->pluck('id')
         );
         
@@ -35,26 +35,28 @@ class VendorDashboardController extends Controller
         $lastMonth = Carbon::now()->subMonth()->startOfMonth();
         
         // Orders this month
-        $ordersThisMonth = (clone $appointmentsQuery)->where('created_at', '>=', $currentMonth)->count();
+        $ordersThisMonth = (clone $appointmentsQuery)->where('appointments.created_at', '>=', $currentMonth)->count();
         $ordersLastMonth = (clone $appointmentsQuery)
-            ->whereBetween('created_at', [$lastMonth, $currentMonth])
+            ->whereBetween('appointments.created_at', [$lastMonth, $currentMonth])
             ->count();
         
         // Orders today
-        $ordersToday = (clone $appointmentsQuery)->whereDate('created_at', Carbon::today())->count();
-        $ordersYesterday = (clone $appointmentsQuery)->whereDate('created_at', Carbon::yesterday())->count();
+        $ordersToday = (clone $appointmentsQuery)->whereDate('appointments.created_at', Carbon::today())->count();
+        $ordersYesterday = (clone $appointmentsQuery)->whereDate('appointments.created_at', Carbon::yesterday())->count();
         
         // Revenue calculations (using price_min as base for now)
-        $revenueThisMonth = (clone $appointmentsQuery)
-            ->where('created_at', '>=', $currentMonth)
-            ->where('status', 'completed')
-            ->join('vendor_product_services', 'appointments.vendor_product_service_id', '=', 'vendor_product_services.id')
+        $serviceIds = VendorProductService::whereIn('vendor_store_id', $stores->pluck('id'))->pluck('id');
+        
+        $revenueThisMonth = Appointment::whereIn('service_id', $serviceIds)
+            ->where('appointments.created_at', '>=', $currentMonth)
+            ->where('appointments.status', 'completed')
+            ->join('vendor_product_services', 'appointments.service_id', '=', 'vendor_product_services.id')
             ->sum('vendor_product_services.price_min');
             
-        $revenueLastMonth = (clone $appointmentsQuery)
-            ->whereBetween('created_at', [$lastMonth, $currentMonth])
-            ->where('status', 'completed')
-            ->join('vendor_product_services', 'appointments.vendor_product_service_id', '=', 'vendor_product_services.id')
+        $revenueLastMonth = Appointment::whereIn('service_id', $serviceIds)
+            ->whereBetween('appointments.created_at', [$lastMonth, $currentMonth])
+            ->where('appointments.status', 'completed')
+            ->join('vendor_product_services', 'appointments.service_id', '=', 'vendor_product_services.id')
             ->sum('vendor_product_services.price_min');
         
         // Calculate average rating across all services
@@ -66,11 +68,11 @@ class VendorDashboardController extends Controller
         $serviceAreas = $stores->pluck('serviceable_areas')->flatten()->unique()->count();
         
         // Recent appointments
-        $recentAppointments = Appointment::whereIn('vendor_product_service_id', 
+        $recentAppointments = Appointment::whereIn('service_id', 
                 VendorProductService::whereIn('vendor_store_id', $stores->pluck('id'))->pluck('id')
             )
             ->with(['customer', 'vendorProductService.vendorStore'])
-            ->orderBy('created_at', 'desc')
+            ->orderBy('appointments.created_at', 'desc')
             ->limit(5)
             ->get();
         
