@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Head, usePage } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
@@ -19,6 +19,7 @@ import {
     RefreshCw,
     ChevronRight
 } from 'lucide-react';
+import { io, Socket } from 'socket.io-client';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Messages', href: '/messages' },
@@ -81,6 +82,67 @@ export default function Messages() {
     const [sending, setSending] = useState(false);
     const [messageContent, setMessageContent] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
+    const [connected, setConnected] = useState(false);
+    const socketRef = useRef<Socket | null>(null);
+    const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    // Initialize Socket.IO connection
+    useEffect(() => {
+        socketRef.current = io('http://127.0.0.1:3003', {
+            withCredentials: true
+        });
+
+        const socket = socketRef.current;
+
+        socket.on('connect', () => {
+            setConnected(true);
+            // Join the socket with user info
+            socket.emit('join', {
+                userId: auth.user.id,
+                userType: auth.user.user_type || 'customer',
+                userName: auth.user.name
+            });
+        });
+
+        socket.on('disconnect', () => {
+            setConnected(false);
+        });
+
+        // Listen for new messages
+        socket.on('new_message', (message: Message) => {
+            console.log('📨 New message received:', message);
+            
+            // Add message if it's for the current conversation
+            if (selectedVendor && 
+                ((message.sender.user_id === selectedVendor.id && message.recipient.user_id === auth.user.id) ||
+                 (message.sender.user_id === auth.user.id && message.recipient.user_id === selectedVendor.id))) {
+                setMessages(prev => [...prev, message]);
+                scrollToBottom();
+            }
+        });
+
+        // Listen for message sent confirmation
+        socket.on('message_sent', (message: Message) => {
+            console.log('✅ Message sent confirmation:', message);
+            setMessages(prev => [...prev, message]);
+            scrollToBottom();
+        });
+
+        // Cleanup on unmount
+        return () => {
+            socket.disconnect();
+        };
+    }, [selectedVendor, auth.user.id]);
+
+    // Scroll to bottom helper
+    const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    };
+
+    useEffect(() => {
+        scrollToBottom();
+    }, [messages]);
+
     // Handle vendor selection from URL params or props
     useEffect(() => {
         if (selectedVendorId) {
@@ -155,8 +217,8 @@ export default function Messages() {
     };
     const sendMessage = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!messageContent.trim() || !selectedVendor) {
-            alert('Please enter a message');
+        if (!messageContent.trim() || !selectedVendor || !socketRef.current || !connected) {
+            alert('Please enter a message or check your connection');
             return;
         }
 
@@ -173,33 +235,13 @@ export default function Messages() {
                 message_type: 'text'
             };
 
-            console.log('Sending message:', messageData);
+            console.log('Sending message via Socket.IO:', messageData);
 
-            const response = await fetch('/messages/send', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-                    'X-Requested-With': 'XMLHttpRequest',
-                },
-                credentials: 'same-origin',
-                body: JSON.stringify(messageData),
-            });
+            // Send via Socket.IO for real-time delivery
+            socketRef.current.emit('send_message', messageData);
 
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('Send message error response:', errorText);
-                throw new Error(`Failed to send message: ${errorText}`);
-            }
-
-            const result = await response.json();
-            console.log('Send message result:', result);
-
-            // Clear form
+            // Clear form immediately (message will be added via socket confirmation)
             setMessageContent('');
-            
-            // Reload messages to show the new one
-            await loadMessages();
             
         } catch (error) {
             console.error('Error sending message:', error);
@@ -437,6 +479,7 @@ export default function Messages() {
                                                         </div>
                                                     </div>
                                                 ))}
+                                                <div ref={messagesEndRef} />
                                             </div>
                                         )}
                                     </div>
@@ -460,11 +503,11 @@ export default function Messages() {
                                             </div>
                                             <button
                                                 type="submit"
-                                                disabled={sending || !messageContent.trim()}
+                                                disabled={sending || !messageContent.trim() || !connected}
                                                 className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:from-slate-400 disabled:to-slate-400 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 flex items-center justify-center self-start"
                                             >
                                                 <Send size={20} className="mr-2" />
-                                                {sending ? 'Sending...' : 'Send'}
+                                                {sending ? 'Sending...' : connected ? 'Send' : 'Connecting...'}
                                             </button>
                                         </div>
                                     </form>
