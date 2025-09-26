@@ -24,6 +24,15 @@ interface ProductService {
     description: string;
     priceMin: string;
     priceMax: string;
+    category: string;
+    durationMinutes: string;
+    discountPercentage: string;
+    includes: string[];
+    requirements: string[];
+    warrantyInfo: string;
+    pickupAvailable: boolean;
+    deliveryAvailable: boolean;
+    images: File[];
 }
 
 export default function CreateStore() {
@@ -43,7 +52,22 @@ export default function CreateStore() {
     });
     
     const [productServices, setProductServices] = useState<ProductService[]>([
-        { id: '1', name: '', description: '', priceMin: '', priceMax: '' }
+        { 
+            id: '1', 
+            name: '', 
+            description: '', 
+            priceMin: '', 
+            priceMax: '',
+            category: '',
+            durationMinutes: '',
+            discountPercentage: '',
+            includes: [''],
+            requirements: [''],
+            warrantyInfo: '',
+            pickupAvailable: false,
+            deliveryAvailable: false,
+            images: []
+        }
     ]);
 
     const [logoPreview, setLogoPreview] = useState<string | null>(null);
@@ -110,7 +134,22 @@ export default function CreateStore() {
         const newId = Date.now().toString();
         const newServices = [
             ...productServices,
-            { id: newId, name: '', description: '', priceMin: '', priceMax: '' }
+            { 
+                id: newId, 
+                name: '', 
+                description: '', 
+                priceMin: '', 
+                priceMax: '',
+                category: '',
+                durationMinutes: '',
+                discountPercentage: '',
+                includes: [''],
+                requirements: [''],
+                warrantyInfo: '',
+                pickupAvailable: false,
+                deliveryAvailable: false,
+                images: []
+            }
         ];
         setProductServices(newServices);
         setData('productServices', newServices);
