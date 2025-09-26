@@ -19,10 +19,12 @@ class Message extends Model
         'content',
         'message_type',
         'status',
+        'is_read',
         'read_at'
     ];
 
     protected $casts = [
+        'is_read' => 'boolean',
         'read_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
