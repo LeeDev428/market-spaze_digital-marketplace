@@ -89,6 +89,7 @@ const Message = mongoose.model('Message', messageSchema);
 
 // Socket.IO connection handling
 const connectedUsers = new Map();
+const userActivity = new Map(); // Track last activity time
 
 io.on('connection', (socket) => {
   console.log(`🔌 User connected: ${socket.id}`);
@@ -100,18 +101,37 @@ io.on('connection', (socket) => {
     socket.userType = userType;
     socket.userName = userName;
     
+    const now = Date.now();
     connectedUsers.set(userId, {
       socketId: socket.id,
       userType,
       userName,
-      online: true
+      online: true,
+      lastActivity: now
     });
+    
+    userActivity.set(userId, now);
     
     socket.join(`user_${userId}`);
     console.log(`👤 User ${userName} (${userType}) joined room: user_${userId}`);
     
+    // Send current online users to the new user
+    const onlineUserIds = Array.from(connectedUsers.keys());
+    socket.emit('online_users', onlineUserIds);
+    
     // Broadcast user online status
     socket.broadcast.emit('user_online', { userId, userType, userName });
+  });
+
+  // Handle user activity updates
+  socket.on('user_activity', (data) => {
+    const { userId, timestamp } = data;
+    if (connectedUsers.has(userId)) {
+      const user = connectedUsers.get(userId);
+      user.lastActivity = timestamp;
+      connectedUsers.set(userId, user);
+      userActivity.set(userId, timestamp);
+    }
   });
   
   // Handle real-time message sending
@@ -155,6 +175,9 @@ io.on('connection', (socket) => {
       // Send confirmation back to sender
       socket.emit('message_sent', formattedMessage);
       
+      // Update unread count for recipient
+      await updateUnreadCount(messageData.recipient_id);
+      
       console.log(`💬 Message sent from ${messageData.sender_name} to ${messageData.recipient_name}`);
       
     } catch (error) {
@@ -181,6 +204,9 @@ io.on('connection', (socket) => {
         });
       });
       
+      // Update unread count for the user who read the messages
+      await updateUnreadCount(userId);
+      
     } catch (error) {
       console.error('❌ Mark as read error:', error);
     }
@@ -189,6 +215,7 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     if (socket.userId) {
       connectedUsers.delete(socket.userId);
+      userActivity.delete(socket.userId);
       socket.broadcast.emit('user_offline', { 
         userId: socket.userId, 
         userType: socket.userType,
@@ -198,6 +225,32 @@ io.on('connection', (socket) => {
     }
   });
 });
+
+// Check for idle users every 30 seconds
+setInterval(() => {
+  const now = Date.now();
+  const IDLE_TIMEOUT = 5 * 60 * 1000; // 5 minutes in milliseconds
+  
+  connectedUsers.forEach((user, userId) => {
+    const lastActivity = userActivity.get(userId) || 0;
+    const timeSinceActivity = now - lastActivity;
+    
+    if (timeSinceActivity > IDLE_TIMEOUT && user.online) {
+      // Mark user as offline due to inactivity
+      user.online = false;
+      connectedUsers.set(userId, user);
+      
+      // Notify all users that this user went offline
+      io.emit('user_offline', { 
+        userId, 
+        userType: user.userType,
+        userName: user.userName 
+      });
+      
+      console.log(`⏱️ User ${user.userName} marked offline due to inactivity`);
+    }
+  });
+}, 30000); // Check every 30 seconds
 
 // Routes
 app.get('/health', (req, res) => {
