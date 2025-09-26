@@ -67,88 +67,41 @@ interface PageProps extends Record<string, unknown> {
             user_type?: string;
         };
     };
+    vendors: Vendor[];
+    selectedVendorId?: string;
 }
 
 export default function Messages() {
-    const { auth } = usePage<PageProps>().props;
+    const { auth, vendors: initialVendors, selectedVendorId } = usePage<PageProps>().props;
     const [currentView, setCurrentView] = useState<'vendors' | 'conversation'>('vendors');
     const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
-    const [vendors, setVendors] = useState<Vendor[]>([]);
+    const [vendors, setVendors] = useState<Vendor[]>(initialVendors || []);
     const [messages, setMessages] = useState<Message[]>([]);
     const [loading, setLoading] = useState(false);
     const [sending, setSending] = useState(false);
     const [messageContent, setMessageContent] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
-    // Get vendor ID from URL params
+    // Handle vendor selection from URL params or props
     useEffect(() => {
-        const urlParams = new URLSearchParams(window.location.search);
-        const vendorId = urlParams.get('vendor');
-        if (vendorId) {
-            // TODO: Fetch specific vendor and switch to conversation view
-            loadVendorById(parseInt(vendorId));
-        } else {
-            loadVendors();
+        if (selectedVendorId) {
+            const vendorId = parseInt(selectedVendorId);
+            const vendor = vendors.find(v => v.id === vendorId);
+            if (vendor) {
+                setSelectedVendor(vendor);
+                setCurrentView('conversation');
+                loadMessages(vendorId);
+            }
         }
-    }, []);
+    }, [selectedVendorId, vendors]);
 
     const loadVendors = async () => {
-        setLoading(true);
-        try {
-            // Mock vendor data - replace with actual API call
-            const mockVendors: Vendor[] = [
-                {
-                    id: 1,
-                    business_name: "TechFix Pro",
-                    description: "Professional electronics repair and maintenance services",
-                    address: "123 Tech Street, Digital City",
-                    contact_phone: "+63 912 345 6789",
-                    contact_email: "contact@techfixpro.com",
-                    rating: 4.8,
-                    total_reviews: 156,
-                    verified: true,
-                    response_time: "Within 2 hours",
-                    business_type: "services"
-                },
-                {
-                    id: 2,
-                    business_name: "Home Services Plus",
-                    description: "Complete home maintenance and repair solutions",
-                    address: "456 Service Avenue, Metro Manila",
-                    contact_phone: "+63 917 234 5678",
-                    contact_email: "info@homeservicesplus.com",
-                    rating: 4.9,
-                    total_reviews: 203,
-                    verified: true,
-                    response_time: "Within 1 hour",
-                    business_type: "services"
-                },
-                {
-                    id: 3,
-                    business_name: "QuickFix Solutions",
-                    description: "Fast and reliable repair services for all your needs",
-                    address: "789 Repair Road, Quezon City",
-                    contact_phone: "+63 905 876 5432",
-                    contact_email: "support@quickfixsolutions.com",
-                    rating: 4.7,
-                    total_reviews: 98,
-                    verified: false,
-                    response_time: "Within 4 hours",
-                    business_type: "services"
-                }
-            ];
-            setVendors(mockVendors);
-        } catch (error) {
-            console.error('Error loading vendors:', error);
-            setVendors([]);
-        } finally {
-            setLoading(false);
-        }
+        // Vendors are now loaded from props, no need to fetch separately
+        setLoading(false);
     };
 
     const loadVendorById = async (vendorId: number) => {
         setLoading(true);
         try {
-            await loadVendors();
             const vendor = vendors.find(v => v.id === vendorId);
             if (vendor) {
                 setSelectedVendor(vendor);
