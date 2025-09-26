@@ -82,11 +82,14 @@ Route::get('/service-details/{id}', function ($id) {
         'emergency_service' => $service->emergency_service,
         'special_instructions' => $service->special_instructions,
         'tags' => $service->tags ?? [],
-        'images' => $service->images ? $service->images->pluck('image_path')->toArray() : [
-            '/img/service-placeholder-1.jpg',
-            '/img/service-placeholder-2.jpg',
-            '/img/service-placeholder-3.jpg'
-        ]
+        'images' => $service->images ? $service->images->map(function($image) {
+            return [
+                'id' => $image->id,
+                'url' => asset('storage/' . $image->image_path),
+                'is_primary' => $image->is_primary,
+                'alt_text' => $image->alt_text
+            ];
+        })->toArray() : []
     ];
     
     // Transform vendor data for frontend
