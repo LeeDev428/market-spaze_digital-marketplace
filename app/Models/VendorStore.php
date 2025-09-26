@@ -20,6 +20,7 @@ class VendorStore extends Model
         'contact_email',
         'service_description',
         'logo_path',
+        'vendor_image',
         'is_active',
         'setup_completed'
     ];
