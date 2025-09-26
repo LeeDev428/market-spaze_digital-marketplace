@@ -48,6 +48,9 @@ interface ServiceDetailsProps {
         duration_minutes: number;
         discount_percentage?: number;
         popular?: boolean;
+        is_guaranteed?: boolean;
+        is_professional?: boolean;
+        is_verified?: boolean;
         includes?: string[];
         requirements?: string[];
         images?: ServiceImage[];
@@ -265,15 +268,17 @@ export default function ServiceDetails({ service, vendor }: ServiceDetailsProps)
                                             <Timer size={16} className="mr-2 text-blue-500" />
                                             {service?.duration_minutes} minutes
                                         </div>
-                                        {service?.has_warranty && (
-                                            <div className="flex items-center">
-                                                <Shield size={16} className="mr-2 text-green-500" />
-                                                {service.warranty_days} days warranty
-                                            </div>
-                                        )}
                                         <div className="flex items-center">
-                                            <Award size={16} className="mr-2 text-purple-500" />
-                                            Professional
+                                            <Shield size={16} className={`mr-2 ${service?.is_guaranteed ? 'text-green-500' : 'text-red-500'}`} />
+                                            {service?.is_guaranteed ? 'Guaranteed' : 'Not Guaranteed'}
+                                        </div>
+                                        <div className="flex items-center">
+                                            <Award size={16} className={`mr-2 ${service?.is_professional ? 'text-purple-500' : 'text-gray-500'}`} />
+                                            {service?.is_professional ? 'Professional' : 'Not Professional'}
+                                        </div>
+                                        <div className="flex items-center">
+                                            <BadgeCheck size={16} className={`mr-2 ${service?.is_verified ? 'text-blue-500' : 'text-gray-500'}`} />
+                                            {service?.is_verified ? 'Verified' : 'Not Verified'}
                                         </div>
                                         {service?.emergency_service && (
                                             <div className="flex items-center">
