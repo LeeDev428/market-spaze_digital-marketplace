@@ -58,7 +58,7 @@ class VendorStoreController extends Controller
     public function show(VendorStore $vendorStore)
     {
         // Check if the store belongs to the authenticated user
-        if ($vendorStore->user_id !== auth()->id()) {
+        if ($vendorStore->user_id !== Auth::id()) {
             abort(403);
         }
 
@@ -76,7 +76,7 @@ class VendorStoreController extends Controller
     public function edit(VendorStore $vendorStore)
     {
         // Check if the store belongs to the authenticated user
-        if ($vendorStore->user_id !== auth()->id()) {
+        if ($vendorStore->user_id !== Auth::id()) {
             abort(403);
         }
 
@@ -150,7 +150,7 @@ class VendorStoreController extends Controller
 
         // Create vendor store
         $vendorStore = VendorStore::create([
-            'user_id' => auth()->id(),
+            'user_id' => Auth::id(),
             'business_name' => $validated['businessName'],
             'description' => $validated['description'],
             'business_type' => $validated['businessType'],
