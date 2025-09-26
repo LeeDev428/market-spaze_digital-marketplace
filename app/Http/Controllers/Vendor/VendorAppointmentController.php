@@ -96,6 +96,29 @@ class VendorAppointmentController extends Controller
                         'license_number' => $appointment->rider->license_number,
                         'status' => $appointment->rider->status,
                     ] : null,
+                    'vendor_product_service' => $appointment->vendorProductService ? [
+                        'id' => $appointment->vendorProductService->id,
+                        'name' => $appointment->vendorProductService->name,
+                        'description' => $appointment->vendorProductService->description,
+                        'price' => $appointment->vendorProductService->price,
+                        'discounted_price' => $appointment->vendorProductService->discounted_price,
+                        'category' => $appointment->vendorProductService->category,
+                        'subcategory' => $appointment->vendorProductService->subcategory,
+                        'service_type' => $appointment->vendorProductService->service_type,
+                        'duration_minutes' => $appointment->vendorProductService->duration_minutes,
+                        'is_available' => $appointment->vendorProductService->is_available,
+                        'guarantee' => $appointment->vendorProductService->guarantee,
+                        'ratings' => $appointment->vendorProductService->ratings,
+                        'features' => $appointment->vendorProductService->features ? json_decode($appointment->vendorProductService->features, true) : [],
+                        'images' => $appointment->vendorProductService->images ? $appointment->vendorProductService->images->map(function ($image) {
+                            return [
+                                'id' => $image->id,
+                                'image_path' => $image->image_path,
+                                'is_primary' => $image->is_primary,
+                                'full_url' => asset('storage/' . $image->image_path)
+                            ];
+                        }) : [],
+                    ] : null,
                 ];
             });
 
