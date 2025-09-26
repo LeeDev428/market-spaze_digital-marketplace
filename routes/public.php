@@ -71,6 +71,9 @@ Route::get('/service-details/{id}', function ($id) {
         'duration_minutes' => $service->duration_minutes,
         'discount_percentage' => $service->discount_percentage,
         'popular' => $service->is_popular,
+        'is_guaranteed' => $service->is_guaranteed,
+        'is_professional' => $service->is_professional,
+        'is_verified' => $service->is_verified,
         'includes' => $service->includes ?? [],
         'requirements' => $service->requirements ?? [],
         'rating' => $service->rating,
@@ -107,7 +110,7 @@ Route::get('/service-details/{id}', function ($id) {
         'vendor_image' => $service->vendorStore->vendor_image
     ];
 
-    return Inertia::render('servicedetails', [
+    return Inertia::render('service_details', [
         'service' => $serviceData,
         'vendor' => $vendorData
     ]);
