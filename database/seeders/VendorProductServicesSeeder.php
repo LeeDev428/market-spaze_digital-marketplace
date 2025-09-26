@@ -91,7 +91,7 @@ class VendorProductServicesSeeder extends Seeder
                 'vendor_store_id' => $freshMart->id,
                 'name' => 'Bulk Shopping',
                 'description' => 'Wholesale grocery shopping for events, parties, or monthly stocking.',
-                'category' => 'Grocery & Food',
+                    'category' => 'Grocery & Food',
                 'price_min' => 2000.00,
                 'price_max' => 20000.00,
                 'duration_minutes' => 180,
@@ -179,8 +179,30 @@ class VendorProductServicesSeeder extends Seeder
                     'vendor_store_id' => $techHub->id,
                     'name' => 'Device Repair',
                     'description' => 'On-site repair services for smartphones, laptops, and other devices.',
+                    'category' => 'Electronics & Technology',
                     'price_min' => 800.00,
                     'price_max' => 8000.00,
+                    'duration_minutes' => 150,
+                    'rating' => 4.8,
+                    'total_reviews' => 203,
+                    'response_time' => 'Within 4 hours',
+                    'includes' => json_encode([
+                        'Free diagnostic',
+                        'Genuine parts',
+                        '30-day warranty',
+                        'On-site service'
+                    ]),
+                    'requirements' => json_encode([
+                        'Device accessible',
+                        'Power source available',
+                        'Backup data recommended'
+                    ]),
+                    'has_warranty' => true,
+                    'warranty_days' => 30,
+                    'pickup_available' => true,
+                    'delivery_available' => true,
+                    'slug' => 'device-repair',
+                    'tags' => json_encode(['repair', 'device', 'onsite', 'warranty']),
                     'is_active' => true,
                 ]);
             }
@@ -193,8 +215,27 @@ class VendorProductServicesSeeder extends Seeder
                     'vendor_store_id' => $bellaFashion->id,
                     'name' => 'Fashion Delivery',
                     'description' => 'Careful delivery of clothing, shoes, and accessories with option for returns.',
+                    'category' => 'Fashion & Lifestyle',
                     'price_min' => 800.00,
                     'price_max' => 15000.00,
+                    'duration_minutes' => 60,
+                    'rating' => 4.4,
+                    'total_reviews' => 92,
+                    'response_time' => 'Within 2 hours',
+                    'includes' => json_encode([
+                        'Careful handling',
+                        'Easy returns',
+                        'Try before you buy',
+                        'Style consultation'
+                    ]),
+                    'requirements' => json_encode([
+                        'Someone available for delivery',
+                        'ID required for returns'
+                    ]),
+                    'pickup_available' => true,
+                    'delivery_available' => true,
+                    'slug' => 'fashion-delivery',
+                    'tags' => json_encode(['fashion', 'delivery', 'clothing', 'returns']),
                     'is_active' => true,
                 ]);
 
