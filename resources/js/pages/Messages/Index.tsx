@@ -83,6 +83,7 @@ export default function Messages() {
     const [messageContent, setMessageContent] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
     const [connected, setConnected] = useState(false);
+    const [onlineUsers, setOnlineUsers] = useState<Set<number>>(new Set());
     const socketRef = useRef<Socket | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -106,6 +107,23 @@ export default function Messages() {
 
         socket.on('disconnect', () => {
             setConnected(false);
+        });
+
+        // Listen for online/offline status
+        socket.on('user_online', (userData: { userId: number; userType: string; userName: string }) => {
+            setOnlineUsers(prev => new Set([...prev, userData.userId]));
+        });
+
+        socket.on('user_offline', (userData: { userId: number; userType: string; userName: string }) => {
+            setOnlineUsers(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(userData.userId);
+                return newSet;
+            });
+        });
+
+        socket.on('online_users', (userIds: number[]) => {
+            setOnlineUsers(new Set(userIds));
         });
 
         // Listen for new messages
@@ -154,6 +172,10 @@ export default function Messages() {
                 loadMessages(vendorId);
             }
         }
+        
+        // For testing: Set some vendors as online
+        const vendorIds = vendors.map(v => v.id);
+        setOnlineUsers(new Set(vendorIds));
     }, [selectedVendorId, vendors]);
 
     const loadVendors = async () => {
@@ -204,6 +226,8 @@ export default function Messages() {
                     (msg.sender.user_id === targetVendorId && msg.recipient.user_id === auth.user.id) ||
                     (msg.sender.user_id === auth.user.id && msg.recipient.user_id === targetVendorId)
                 );
+                // Sort messages by created_at to show newest at bottom
+                vendorMessages.sort((a: Message, b: Message) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
                 setMessages(vendorMessages);
             } else {
                 setMessages([]);
@@ -336,11 +360,19 @@ export default function Messages() {
                                                 <div className="flex items-start justify-between mb-4">
                                                     <div className="flex-1">
                                                         <div className="flex items-center gap-2 mb-2">
-                                                            <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
-                                                                {vendor.business_name}
-                                                            </h3>
+                                                            <div className="relative">
+                                                                <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+                                                                    {vendor.business_name}
+                                                                </h3>
+                                                                {onlineUsers.has(vendor.id) && (
+                                                                    <div className="absolute -top-1 -right-2 w-3 h-3 bg-green-400 rounded-full border border-white shadow-sm"></div>
+                                                                )}
+                                                            </div>
                                                             {vendor.verified && (
                                                                 <BadgeCheck className="text-blue-500" size={20} />
+                                                            )}
+                                                            {onlineUsers.has(vendor.id) && (
+                                                                <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">Online</span>
                                                             )}
                                                         </div>
                                                         <p className="text-slate-600 dark:text-slate-400 text-sm line-clamp-2">
@@ -392,8 +424,13 @@ export default function Messages() {
                                     <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 p-6">
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center">
-                                                <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center mr-4">
-                                                    <Building2 className="text-white" size={24} />
+                                                <div className="relative mr-4">
+                                                    <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                                                        <Building2 className="text-white" size={24} />
+                                                    </div>
+                                                    {onlineUsers.has(selectedVendor.id) && (
+                                                        <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-green-400 rounded-full border-2 border-white shadow-lg"></div>
+                                                    )}
                                                 </div>
                                                 <div>
                                                     <div className="flex items-center gap-2">
@@ -405,7 +442,9 @@ export default function Messages() {
                                                         )}
                                                     </div>
                                                     <p className="text-slate-600 dark:text-slate-400 text-sm">
-                                                        {selectedVendor.description}
+                                                        <span className={onlineUsers.has(selectedVendor.id) ? 'text-green-500' : 'text-gray-500'}>
+                                                            {onlineUsers.has(selectedVendor.id) ? '🟢 Online' : '⚫ Offline'} • 
+                                                        </span> {selectedVendor.description}
                                                     </p>
                                                 </div>
                                             </div>
