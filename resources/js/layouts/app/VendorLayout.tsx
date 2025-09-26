@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { io, Socket } from 'socket.io-client';
 import { Link, usePage } from '@inertiajs/react'; // Add usePage import
 import LogoutButton from '../../components_vendor/LogoutButton';
 import { 
@@ -97,6 +98,7 @@ export default function VendorLayout({ children }: { children: React.ReactNode }
     const [searchQuery, setSearchQuery] = useState('');
     const [userMenuOpen, setUserMenuOpen] = useState(false);
     const [messageCount, setMessageCount] = useState(0);
+    const socketRef = useRef<Socket | null>(null);
 
     useEffect(() => {
         const handleResize = () => setWindowWidth(window.innerWidth);
@@ -119,7 +121,7 @@ export default function VendorLayout({ children }: { children: React.ReactNode }
         if (!isMobile) setSidebarOpen(false);
     }, [isMobile]);
 
-    // Fetch unread messages count
+    // Fetch unread messages count with real-time updates
     useEffect(() => {
         const fetchUnreadCount = async () => {
             if (auth?.user?.id) {
@@ -135,10 +137,39 @@ export default function VendorLayout({ children }: { children: React.ReactNode }
             }
         };
 
-        fetchUnreadCount();
-        // Poll for updates every 30 seconds
+        // Initialize Socket.IO for real-time updates
+        if (auth?.user?.id) {
+            socketRef.current = io('http://127.0.0.1:3003', {
+                withCredentials: true
+            });
+
+            const socket = socketRef.current;
+
+            socket.on('connect', () => {
+                socket.emit('join', {
+                    userId: auth.user.id,
+                    userType: 'vendor',
+                    userName: auth.user.name
+                });
+            });
+
+            // Listen for real-time unread count updates
+            socket.on('unread_count_update', (data: { unreadCount: number }) => {
+                setMessageCount(data.unreadCount);
+            });
+
+            fetchUnreadCount();
+        }
+
+        // Poll for updates every 30 seconds as fallback
         const interval = setInterval(fetchUnreadCount, 30000);
-        return () => clearInterval(interval);
+        
+        return () => {
+            clearInterval(interval);
+            if (socketRef.current) {
+                socketRef.current.disconnect();
+            }
+        };
     }, [auth?.user?.id]);
 
     const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
