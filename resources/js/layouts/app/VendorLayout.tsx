@@ -176,6 +176,33 @@ export default function VendorLayout({ children }: { children: React.ReactNode }
         };
     }, [auth?.user?.id]);
 
+    // Fetch notification count for vendor
+    useEffect(() => {
+        const fetchNotificationCount = async () => {
+            if (auth?.user?.id) {
+                try {
+                    const response = await fetch('/api/notifications/appointments', {
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                        }
+                    });
+                    const data = await response.json();
+                    if (data.unreadCount !== undefined) {
+                        setNotificationCount(data.unreadCount);
+                    }
+                } catch (error) {
+                    console.error('Failed to fetch notification count:', error);
+                }
+            }
+        };
+
+        fetchNotificationCount();
+        const notificationInterval = setInterval(fetchNotificationCount, 60000); // Check every minute
+
+        return () => clearInterval(notificationInterval);
+    }, [auth?.user?.id]);
+
     const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
 
     return (
@@ -353,12 +380,29 @@ export default function VendorLayout({ children }: { children: React.ReactNode }
                                     <span>Add Product</span>
                                 </Link>
 
-                                {/* Notifications */}
-                                <button className="relative p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
-                                    <Bell size={20} className="text-slate-600 dark:text-slate-400" />
-                                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs 
-                                                   rounded-full flex items-center justify-center">5</span>
-                                </button>
+                                {/* Appointment Notifications */}
+                                <div className="relative">
+                                    <button
+                                        ref={notificationBellRef}
+                                        onClick={() => setIsNotificationOpen(!isNotificationOpen)}
+                                        className="relative p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                                        title={notificationCount > 0 ? `${notificationCount} appointment notifications` : 'Appointment notifications'}
+                                    >
+                                        <Bell size={20} className="text-slate-600 dark:text-slate-400" />
+                                        {notificationCount > 0 && (
+                                            <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs 
+                                                           rounded-full flex items-center justify-center min-w-[20px] font-bold">
+                                                {notificationCount > 99 ? '99+' : notificationCount}
+                                            </span>
+                                        )}
+                                    </button>
+
+                                    <NotificationDropdown
+                                        isOpen={isNotificationOpen}
+                                        onClose={() => setIsNotificationOpen(false)}
+                                        triggerRef={notificationBellRef}
+                                    />
+                                </div>
 
                                 {/* Messages */}
                                 <Link 
