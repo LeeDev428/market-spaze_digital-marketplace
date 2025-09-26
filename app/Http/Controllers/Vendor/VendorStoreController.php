@@ -7,6 +7,7 @@ use App\Models\VendorStore;
 use App\Models\VendorProductService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
 class VendorStoreController extends Controller
@@ -16,7 +17,7 @@ class VendorStoreController extends Controller
      */
     public function index(Request $request)
     {
-        $query = VendorStore::where('user_id', auth()->id())
+        $query = VendorStore::where('user_id', Auth::id())
             ->withCount('productsServices');
 
         // Apply filters
@@ -104,6 +105,8 @@ class VendorStoreController extends Controller
             'serviceDescription' => 'nullable|string',
             'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'productServices' => 'required|array|min:1',
+            
+            // Enhanced validation for ALL database fields
             'productServices.*.name' => 'required|string',
             'productServices.*.description' => 'required|string',
             'productServices.*.priceMin' => 'required|numeric|min:0',
@@ -111,11 +114,27 @@ class VendorStoreController extends Controller
             'productServices.*.category' => 'required|string|max:255',
             'productServices.*.durationMinutes' => 'nullable|integer|min:0',
             'productServices.*.discountPercentage' => 'nullable|numeric|min:0|max:100',
+            'productServices.*.responseTime' => 'nullable|string',
             'productServices.*.includes' => 'nullable|string',
             'productServices.*.requirements' => 'nullable|string',
-            'productServices.*.warrantyInfo' => 'nullable|string|max:255',
+            'productServices.*.tags' => 'nullable|string',
+            'productServices.*.specialInstructions' => 'nullable|string',
+            
+            // Boolean fields
+            'productServices.*.isPopular' => 'boolean',
+            'productServices.*.isGuaranteed' => 'boolean',
+            'productServices.*.isProfessional' => 'boolean',
+            'productServices.*.hasWarranty' => 'boolean',
             'productServices.*.pickupAvailable' => 'boolean',
             'productServices.*.deliveryAvailable' => 'boolean',
+            'productServices.*.emergencyService' => 'boolean',
+            
+            // Warranty fields
+            'productServices.*.warrantyDays' => 'nullable|integer|min:1',
+            
+            // Image files (multiple images per service)
+            'productServices.*.images' => 'nullable|array',
+            'productServices.*.images.*' => 'image|mimes:jpeg,png,jpg,gif,webp|max:5120', // 5MB max per image
         ]);
 
         // Handle logo upload
@@ -145,21 +164,27 @@ class VendorStoreController extends Controller
             'is_active' => true
         ]);
 
-        // Create products/services with enhanced fields
+        // Create products/services with ALL enhanced fields
         foreach ($validated['productServices'] as $productService) {
             if (!empty(trim($productService['name']))) {
-                // Parse includes and requirements arrays (from textarea strings)
+                // Parse includes, requirements, and tags arrays (from textarea/input strings)
                 $includes = [];
                 if (!empty($productService['includes'])) {
-                    $includes = array_filter(array_map('trim', explode("\n", $productService['includes'])));
+                    $includes = array_filter(array_map('trim', preg_split('/[\n,]+/', $productService['includes'])));
                 }
 
                 $requirements = [];
                 if (!empty($productService['requirements'])) {
-                    $requirements = array_filter(array_map('trim', explode("\n", $productService['requirements'])));
+                    $requirements = array_filter(array_map('trim', preg_split('/[\n,]+/', $productService['requirements'])));
                 }
 
-                VendorProductService::create([
+                $tags = [];
+                if (!empty($productService['tags'])) {
+                    $tags = array_filter(array_map('trim', explode(',', $productService['tags'])));
+                }
+
+                // Create the product/service record with ALL database fields
+                $createdService = VendorProductService::create([
                     'vendor_store_id' => $vendorStore->id,
                     'name' => $productService['name'],
                     'description' => $productService['description'],
@@ -168,18 +193,54 @@ class VendorStoreController extends Controller
                     'category' => $productService['category'],
                     'duration_minutes' => $productService['durationMinutes'] ?: null,
                     'discount_percentage' => $productService['discountPercentage'] ?: 0,
+                    'response_time' => $productService['responseTime'] ?: null,
                     'includes' => !empty($includes) ? $includes : null,
                     'requirements' => !empty($requirements) ? $requirements : null,
-                    'warranty_info' => $productService['warrantyInfo'] ?: null,
+                    'tags' => !empty($tags) ? $tags : null,
+                    'special_instructions' => $productService['specialInstructions'] ?: null,
+                    
+                    // Boolean fields with proper defaults
+                    'is_popular' => $productService['isPopular'] ?? false,
+                    'is_guaranteed' => $productService['isGuaranteed'] ?? true,
+                    'is_professional' => $productService['isProfessional'] ?? true,
+                    'has_warranty' => $productService['hasWarranty'] ?? false,
                     'pickup_available' => $productService['pickupAvailable'] ?? false,
                     'delivery_available' => $productService['deliveryAvailable'] ?? false,
+                    'emergency_service' => $productService['emergencyService'] ?? false,
+                    
+                    // Warranty fields
+                    'warranty_days' => ($productService['hasWarranty'] && !empty($productService['warrantyDays'])) 
+                        ? (int)$productService['warrantyDays'] : null,
+                    
+                    // Default values for fields not in form yet
+                    'rating' => 0.0,
+                    'rating_count' => 0,
+                    'bookings_count' => 0,
                     'is_active' => true
                 ]);
+
+                // Handle multiple image uploads for this service
+                // Note: Frontend sends images as files in the productServices array
+                if (isset($productService['images']) && is_array($productService['images'])) {
+                    foreach ($productService['images'] as $index => $image) {
+                        if ($image instanceof \Illuminate\Http\UploadedFile) {
+                            $imagePath = $image->store('product-service-images', 'public');
+                            
+                            // Create image record in product_service_images table
+                            $createdService->images()->create([
+                                'image_path' => $imagePath,
+                                'alt_text' => $productService['name'] . ' - Image ' . ($index + 1),
+                                'sort_order' => $index,
+                                'is_primary' => $index === 0, // First image is primary
+                            ]);
+                        }
+                    }
+                }
             }
         }
 
         return redirect()->route('vendor.store.index')
-            ->with('success', 'Store created successfully!');
+            ->with('success', 'Store created successfully with ' . count($validated['productServices']) . ' products/services!');
     }
 
     /**
@@ -188,7 +249,7 @@ class VendorStoreController extends Controller
     public function update(Request $request, VendorStore $vendorStore)
     {
         // Check if the store belongs to the authenticated user
-        if ($vendorStore->user_id !== auth()->id()) {
+        if ($vendorStore->user_id !== auth()->user()->id) {
             abort(403);
         }
 
@@ -204,6 +265,8 @@ class VendorStoreController extends Controller
             'serviceDescription' => 'nullable|string',
             'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'productServices' => 'required|array|min:1',
+            
+            // Enhanced validation for ALL database fields
             'productServices.*.name' => 'required|string',
             'productServices.*.description' => 'required|string',
             'productServices.*.priceMin' => 'required|numeric|min:0',
@@ -211,11 +274,27 @@ class VendorStoreController extends Controller
             'productServices.*.category' => 'required|string|max:255',
             'productServices.*.durationMinutes' => 'nullable|integer|min:0',
             'productServices.*.discountPercentage' => 'nullable|numeric|min:0|max:100',
+            'productServices.*.responseTime' => 'nullable|string',
             'productServices.*.includes' => 'nullable|string',
             'productServices.*.requirements' => 'nullable|string',
-            'productServices.*.warrantyInfo' => 'nullable|string|max:255',
+            'productServices.*.tags' => 'nullable|string',
+            'productServices.*.specialInstructions' => 'nullable|string',
+            
+            // Boolean fields
+            'productServices.*.isPopular' => 'boolean',
+            'productServices.*.isGuaranteed' => 'boolean',
+            'productServices.*.isProfessional' => 'boolean',
+            'productServices.*.hasWarranty' => 'boolean',
             'productServices.*.pickupAvailable' => 'boolean',
             'productServices.*.deliveryAvailable' => 'boolean',
+            'productServices.*.emergencyService' => 'boolean',
+            
+            // Warranty fields
+            'productServices.*.warrantyDays' => 'nullable|integer|min:1',
+            
+            // Image files (multiple images per service)
+            'productServices.*.images' => 'nullable|array',
+            'productServices.*.images.*' => 'image|mimes:jpeg,png,jpg,gif,webp|max:5120', // 5MB max per image
         ]);
 
         // Handle logo upload
@@ -246,24 +325,36 @@ class VendorStoreController extends Controller
             'logo_path' => $logoPath,
         ]);
 
-        // Delete existing products/services
+        // Delete existing products/services and their images
+        foreach ($vendorStore->productsServices as $existingService) {
+            // Delete associated images from storage
+            foreach ($existingService->images as $image) {
+                Storage::disk('public')->delete($image->image_path);
+            }
+        }
         $vendorStore->productsServices()->delete();
 
-        // Create new products/services with enhanced fields
+        // Create new products/services with ALL enhanced fields
         foreach ($validated['productServices'] as $productService) {
             if (!empty(trim($productService['name']))) {
-                // Parse includes and requirements arrays (from textarea strings)
+                // Parse includes, requirements, and tags arrays (from textarea/input strings)
                 $includes = [];
                 if (!empty($productService['includes'])) {
-                    $includes = array_filter(array_map('trim', explode("\n", $productService['includes'])));
+                    $includes = array_filter(array_map('trim', preg_split('/[\n,]+/', $productService['includes'])));
                 }
 
                 $requirements = [];
                 if (!empty($productService['requirements'])) {
-                    $requirements = array_filter(array_map('trim', explode("\n", $productService['requirements'])));
+                    $requirements = array_filter(array_map('trim', preg_split('/[\n,]+/', $productService['requirements'])));
                 }
 
-                VendorProductService::create([
+                $tags = [];
+                if (!empty($productService['tags'])) {
+                    $tags = array_filter(array_map('trim', explode(',', $productService['tags'])));
+                }
+
+                // Create the product/service record with ALL database fields
+                $createdService = VendorProductService::create([
                     'vendor_store_id' => $vendorStore->id,
                     'name' => $productService['name'],
                     'description' => $productService['description'],
@@ -272,18 +363,53 @@ class VendorStoreController extends Controller
                     'category' => $productService['category'],
                     'duration_minutes' => $productService['durationMinutes'] ?: null,
                     'discount_percentage' => $productService['discountPercentage'] ?: 0,
+                    'response_time' => $productService['responseTime'] ?: null,
                     'includes' => !empty($includes) ? $includes : null,
                     'requirements' => !empty($requirements) ? $requirements : null,
-                    'warranty_info' => $productService['warrantyInfo'] ?: null,
+                    'tags' => !empty($tags) ? $tags : null,
+                    'special_instructions' => $productService['specialInstructions'] ?: null,
+                    
+                    // Boolean fields with proper defaults
+                    'is_popular' => $productService['isPopular'] ?? false,
+                    'is_guaranteed' => $productService['isGuaranteed'] ?? true,
+                    'is_professional' => $productService['isProfessional'] ?? true,
+                    'has_warranty' => $productService['hasWarranty'] ?? false,
                     'pickup_available' => $productService['pickupAvailable'] ?? false,
                     'delivery_available' => $productService['deliveryAvailable'] ?? false,
+                    'emergency_service' => $productService['emergencyService'] ?? false,
+                    
+                    // Warranty fields
+                    'warranty_days' => ($productService['hasWarranty'] && !empty($productService['warrantyDays'])) 
+                        ? (int)$productService['warrantyDays'] : null,
+                    
+                    // Default values for fields not in form yet
+                    'rating' => 0.0,
+                    'rating_count' => 0,
+                    'bookings_count' => 0,
                     'is_active' => true
                 ]);
+
+                // Handle multiple image uploads for this service
+                if (isset($productService['images']) && is_array($productService['images'])) {
+                    foreach ($productService['images'] as $index => $image) {
+                        if ($image instanceof \Illuminate\Http\UploadedFile) {
+                            $imagePath = $image->store('product-service-images', 'public');
+                            
+                            // Create image record in product_service_images table
+                            $createdService->images()->create([
+                                'image_path' => $imagePath,
+                                'alt_text' => $productService['name'] . ' - Image ' . ($index + 1),
+                                'sort_order' => $index,
+                                'is_primary' => $index === 0, // First image is primary
+                            ]);
+                        }
+                    }
+                }
             }
         }
 
         return redirect()->route('vendor.store.index')
-            ->with('success', 'Store updated successfully!');
+            ->with('success', 'Store updated successfully with ' . count($validated['productServices']) . ' products/services!');
     }
 
     /**
