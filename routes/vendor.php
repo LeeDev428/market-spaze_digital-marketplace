@@ -43,6 +43,11 @@ Route::middleware(['auth', 'verified', 'vendor'])->prefix('vendor')->name('vendo
     // Route::resource('products', VendorProductController::class);
     // Route::resource('services', VendorServiceController::class);
     
+    // Messages
+    Route::get('/messages', function () {
+        return inertia('vendor/Messages');
+    })->name('messages');
+    
     // Analytics & Reports
     Route::get('/analytics', [VendorDashboardController::class, 'analytics'])->name('analytics');
     Route::get('/reports', [VendorDashboardController::class, 'reports'])->name('reports');
