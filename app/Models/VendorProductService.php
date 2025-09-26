@@ -72,4 +72,9 @@ class VendorProductService extends Model
     {
         return $this->hasOne(ProductServiceImage::class, 'vendor_product_service_id')->where('is_primary', true);
     }
+
+    public function appointments()
+    {
+        return $this->hasMany(Appointment::class, 'service_id');
+    }
 }
