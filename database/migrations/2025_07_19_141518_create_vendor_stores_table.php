@@ -15,6 +15,9 @@ return new class extends Migration
             $table->text('description');
             $table->enum('business_type', ['products', 'services']);
             $table->text('address');
+            $table->string('city')->nullable();
+            $table->string('state')->nullable();
+            $table->string('zip_code')->nullable();
             $table->json('serviceable_areas');
             $table->string('contact_phone');
             $table->string('contact_email');
@@ -22,7 +25,9 @@ return new class extends Migration
             $table->string('logo_path')->nullable();
             $table->string('vendor_image')->nullable(); // Main vendor profile image
             $table->boolean('is_active')->default(true);
+            $table->boolean('is_verified')->default(false); // Admin-controlled verification
             $table->boolean('setup_completed')->default(false);
+            $table->string('response_time')->default('Within 24 hours');
             $table->timestamps();
             
             // Add indexes
