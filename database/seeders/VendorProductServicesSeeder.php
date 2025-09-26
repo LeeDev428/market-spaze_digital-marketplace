@@ -243,8 +243,27 @@ class VendorProductServicesSeeder extends Seeder
                     'vendor_store_id' => $bellaFashion->id,
                     'name' => 'Personal Styling',
                     'description' => 'Personal fashion consultation and styling service at your location.',
+                    'category' => 'Fashion & Lifestyle',
                     'price_min' => 1500.00,
                     'price_max' => 5000.00,
+                    'duration_minutes' => 120,
+                    'rating' => 4.7,
+                    'total_reviews' => 31,
+                    'response_time' => 'Within 24 hours',
+                    'includes' => json_encode([
+                        'Personal consultation',
+                        'Style assessment',
+                        'Color analysis',
+                        'Wardrobe recommendations'
+                    ]),
+                    'requirements' => json_encode([
+                        'Wardrobe access needed',
+                        'Minimum 2 hour session'
+                    ]),
+                    'pickup_available' => false,
+                    'delivery_available' => false,
+                    'slug' => 'personal-styling',
+                    'tags' => json_encode(['styling', 'fashion', 'consultation', 'personal']),
                     'is_active' => false, // Inactive service for testing
                 ]);
 
