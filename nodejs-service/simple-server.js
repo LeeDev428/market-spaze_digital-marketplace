@@ -343,6 +343,26 @@ app.get('/api/messages/unread-count/:userId', async (req, res) => {
   }
 });
 
+// Get total message count for a user (all conversations)
+app.get('/api/messages/total-count/:userId', async (req, res) => {
+  try {
+    const userId = parseInt(req.params.userId);
+    const totalCount = await Message.countDocuments({
+      $or: [
+        { sender_id: userId },
+        { recipient_id: userId }
+      ]
+    });
+    
+    res.json({
+      success: true,
+      total_count: totalCount
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 app.get('/api/messages/user/:userId', async (req, res) => {
   try {
     const messages = await Message.find({
