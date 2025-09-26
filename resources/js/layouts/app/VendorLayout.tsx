@@ -119,25 +119,25 @@ export default function VendorLayout({ children }: { children: React.ReactNode }
         if (!isMobile) setSidebarOpen(false);
     }, [isMobile]);
 
-    // Fetch total messages count
+    // Fetch unread messages count
     useEffect(() => {
-        const fetchMessageCount = async () => {
+        const fetchUnreadCount = async () => {
             if (auth?.user?.id) {
                 try {
-                    const response = await fetch(`http://127.0.0.1:3003/api/messages/total-count/${auth.user.id}`);
+                    const response = await fetch(`http://127.0.0.1:3003/api/messages/unread-count/${auth.user.id}`);
                     const data = await response.json();
                     if (data.success) {
-                        setMessageCount(data.total_count);
+                        setMessageCount(data.unread_count);
                     }
                 } catch (error) {
-                    console.error('Failed to fetch message count:', error);
+                    console.error('Failed to fetch unread count:', error);
                 }
             }
         };
 
-        fetchMessageCount();
+        fetchUnreadCount();
         // Poll for updates every 30 seconds
-        const interval = setInterval(fetchMessageCount, 30000);
+        const interval = setInterval(fetchUnreadCount, 30000);
         return () => clearInterval(interval);
     }, [auth?.user?.id]);
 
