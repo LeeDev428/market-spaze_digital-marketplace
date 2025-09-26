@@ -32,6 +32,7 @@ class NotificationController extends Controller
 
             // Get recent appointment status changes (last 7 days)
             $appointments = Appointment::where('vendor_store_id', $vendorStore->id)
+                ->with(['vendorStore'])
                 ->where('updated_at', '>=', Carbon::now()->subDays(7))
                 ->orderBy('updated_at', 'desc')
                 ->limit(20)
@@ -67,6 +68,7 @@ class NotificationController extends Controller
         } else {
             // Customer notifications
             $appointments = Appointment::where('user_id', $user->id)
+                ->with(['vendorStore'])
                 ->where('updated_at', '>=', Carbon::now()->subDays(7))
                 ->orderBy('updated_at', 'desc')
                 ->limit(20)
