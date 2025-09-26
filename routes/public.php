@@ -46,6 +46,13 @@ Route::get('/services/{category}', function () {
     return Inertia::render('services/Category');
 })->name('services.category');
 
+// Service Details
+Route::get('/service-details/{id}', function ($id) {
+    return Inertia::render('ServiceDetails', [
+        'serviceId' => $id
+    ]);
+})->name('service-details.show');
+
 // About & Contact
 Route::get('/about', function () {
     return Inertia::render('about');
