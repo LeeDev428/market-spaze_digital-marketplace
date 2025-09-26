@@ -3,14 +3,18 @@ import { SidebarTrigger } from '@/components/ui/sidebar';
 import { type BreadcrumbItem as BreadcrumbItemType } from '@/types';
 import { useState, useEffect, useRef } from 'react';
 import { usePage, Link } from '@inertiajs/react';
-import { Bell } from 'lucide-react';
+import { MessageCircle, Bell } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
+import NotificationDropdown from './NotificationDropdown';
 
 export function AppSidebarHeader({ breadcrumbs = [] }: { breadcrumbs?: BreadcrumbItemType[] }) {
     const page = usePage();
     const { auth } = page.props as any;
     const [unreadCount, setUnreadCount] = useState(0);
+    const [notificationCount, setNotificationCount] = useState(0);
+    const [isNotificationOpen, setIsNotificationOpen] = useState(false);
     const socketRef = useRef<Socket | null>(null);
+    const notificationBellRef = useRef<HTMLButtonElement>(null);
 
     // Fetch unread messages count with real-time updates
     useEffect(() => {
@@ -71,6 +75,33 @@ export function AppSidebarHeader({ breadcrumbs = [] }: { breadcrumbs?: Breadcrum
         };
     }, [auth?.user?.id]);
 
+    // Fetch notification count
+    useEffect(() => {
+        const fetchNotificationCount = async () => {
+            if (auth?.user?.id) {
+                try {
+                    const response = await fetch('/api/notifications/appointments', {
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                        }
+                    });
+                    const data = await response.json();
+                    if (data.unreadCount !== undefined) {
+                        setNotificationCount(data.unreadCount);
+                    }
+                } catch (error) {
+                    console.error('Failed to fetch notification count:', error);
+                }
+            }
+        };
+
+        fetchNotificationCount();
+        const notificationInterval = setInterval(fetchNotificationCount, 60000); // Check every minute
+
+        return () => clearInterval(notificationInterval);
+    }, [auth?.user?.id]);
+
     return (
         <header className="flex h-16 shrink-0 items-center gap-2 border-b border-sidebar-border/50 px-6 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 md:px-4">
             <div className="flex items-center gap-2 flex-1">
@@ -82,12 +113,12 @@ export function AppSidebarHeader({ breadcrumbs = [] }: { breadcrumbs?: Breadcrum
             <div className="flex items-center gap-2">
                 <Link
                     href="/messages"
-                    className="relative inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-9 w-9"
+                    className="relative inline-flex items-center justify-center rounded-full bg-blue-100 hover:bg-blue-200 dark:bg-blue-900 dark:hover:bg-blue-800 transition-colors h-10 w-10"
                     title={unreadCount > 0 ? `${unreadCount} unread messages` : 'Messages'}
                 >
-                    <Bell className="h-5 w-5" />
+                    <MessageCircle className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                     {unreadCount > 0 && (
-                        <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-xs rounded-full flex items-center justify-center px-1 font-medium">
+                        <span className="absolute -top-1 -right-1 min-w-[20px] h-[20px] bg-red-500 text-white text-xs rounded-full flex items-center justify-center px-1 font-bold border-2 border-white dark:border-gray-800">
                             {unreadCount > 99 ? '99+' : unreadCount}
                         </span>
                     )}
