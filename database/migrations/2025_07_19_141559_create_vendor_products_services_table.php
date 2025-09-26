@@ -19,8 +19,9 @@ return new class extends Migration
             $table->integer('duration_minutes')->nullable(); // Service duration in minutes
             $table->decimal('discount_percentage', 5, 2)->nullable(); // Discount percentage (0-100)
             $table->boolean('is_popular')->default(false); // Popular choice badge
-            $table->boolean('is_guaranteed')->default(true); // Guaranteed service
-            $table->boolean('is_professional')->default(true); // Professional service
+            $table->boolean('is_guaranteed')->default(false); // Guaranteed service (admin controlled)
+            $table->boolean('is_professional')->default(false); // Professional service (admin controlled)
+            $table->boolean('is_verified')->default(false); // Verified service (admin controlled)
             $table->decimal('rating', 3, 2)->nullable(); // Average rating (0-5)
             $table->integer('total_reviews')->default(0); // Total number of reviews
             $table->string('response_time')->nullable(); // e.g., "Within 2 hours"
