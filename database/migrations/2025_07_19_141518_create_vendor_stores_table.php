@@ -20,6 +20,7 @@ return new class extends Migration
             $table->string('contact_email');
             $table->text('service_description')->nullable();
             $table->string('logo_path')->nullable();
+            $table->string('vendor_image')->nullable(); // Main vendor profile image
             $table->boolean('is_active')->default(true);
             $table->boolean('setup_completed')->default(false);
             $table->timestamps();
