@@ -105,8 +105,8 @@ Route::get('/service-details/{id}', function ($id) {
         'contact_email' => $service->vendorStore->contact_email,
         'rating' => $service->rating ?? 4.8, // Use service rating or default
         'total_reviews' => $service->total_reviews ?? 0,
-        'verified' => true, // You can add a verified field to vendor_stores table later
-        'response_time' => $service->response_time ?? 'Within 24 hours',
+        'verified' => $service->vendorStore->is_verified,
+        'response_time' => $service->vendorStore->response_time,
         'vendor_image' => $service->vendorStore->vendor_image
     ];
 
