@@ -19,7 +19,7 @@ interface Notification {
 interface NotificationDropdownProps {
     isOpen: boolean;
     onClose: () => void;
-    triggerRef: React.RefObject<HTMLButtonElement>;
+    triggerRef: React.RefObject<HTMLButtonElement | null>;
 }
 
 const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ isOpen, onClose, triggerRef }) => {
