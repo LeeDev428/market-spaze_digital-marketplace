@@ -27,10 +27,3 @@ class ProductServiceImage extends Model
         return $this->belongsTo(VendorProductService::class, 'vendor_product_service_id');
     }
 }
-
-use Illuminate\Database\Eloquent\Model;
-
-class ProductServiceImage extends Model
-{
-    //
-}
