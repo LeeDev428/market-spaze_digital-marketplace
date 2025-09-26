@@ -152,6 +152,7 @@ interface Appointment {
         is_popular: boolean;
         is_guaranteed: boolean;
         is_professional: boolean;
+        is_verified: boolean;
         rating: number;
         total_reviews: number;
         response_time?: string;
@@ -1617,18 +1618,18 @@ export default function VendorAppointments({ appointmentCounts, recentAppointmen
                                                                         
                                                                         {/* Service Features */}
                                                                         <div className="flex items-center space-x-2 mt-1">
-                                                                            {appointment.vendor_product_service?.is_guaranteed && (
-                                                                                <div className="flex items-center text-xs text-emerald-600 dark:text-emerald-400">
-                                                                                    <Shield size={10} className="mr-1" />
-                                                                                    Guaranteed
-                                                                                </div>
-                                                                            )}
-                                                                            {appointment.vendor_product_service?.is_popular && (
-                                                                                <div className="flex items-center text-xs text-orange-600 dark:text-orange-400">
-                                                                                    <Star size={10} className="mr-1" />
-                                                                                    Popular
-                                                                                </div>
-                                                                            )}
+                                                                            <div className={`flex items-center text-xs ${appointment.vendor_product_service?.is_guaranteed ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                                                                                <Shield size={10} className="mr-1" />
+                                                                                {appointment.vendor_product_service?.is_guaranteed ? 'Guaranteed' : 'Not Guaranteed'}
+                                                                            </div>
+                                                                            <div className={`flex items-center text-xs ${appointment.vendor_product_service?.is_professional ? 'text-purple-600 dark:text-purple-400' : 'text-gray-600 dark:text-gray-400'}`}>
+                                                                                <Building2 size={10} className="mr-1" />
+                                                                                {appointment.vendor_product_service?.is_professional ? 'Professional' : 'Not Professional'}
+                                                                            </div>
+                                                                            <div className={`flex items-center text-xs ${appointment.vendor_product_service?.is_verified ? 'text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400'}`}>
+                                                                                <CheckCircle size={10} className="mr-1" />
+                                                                                {appointment.vendor_product_service?.is_verified ? 'Verified' : 'Not Verified'}
+                                                                            </div>
                                                                             {appointment.vendor_product_service?.rating && (
                                                                                 <div className="flex items-center text-xs text-yellow-600 dark:text-yellow-400">
                                                                                     <Star size={10} className="mr-1 fill-current" />
