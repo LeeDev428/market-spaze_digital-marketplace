@@ -249,7 +249,7 @@ class VendorStoreController extends Controller
     public function update(Request $request, VendorStore $vendorStore)
     {
         // Check if the store belongs to the authenticated user
-        if ($vendorStore->user_id !== auth()->user()->id) {
+        if ($vendorStore->user_id !== Auth::id()) {
             abort(403);
         }
 
@@ -418,7 +418,7 @@ class VendorStoreController extends Controller
     public function destroy(VendorStore $vendorStore)
     {
         // Check if the store belongs to the authenticated user
-        if ($vendorStore->user_id !== auth()->id()) {
+        if ($vendorStore->user_id !== Auth::id()) {
             abort(403);
         }
 
