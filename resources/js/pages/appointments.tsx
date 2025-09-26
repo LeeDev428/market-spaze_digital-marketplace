@@ -43,7 +43,8 @@ import {
     Sparkles,
     TrendingUp,
     Clock4,
-    CalendarDays
+    CalendarDays,
+    Eye
 } from 'lucide-react';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -319,129 +320,100 @@ const ProfessionalServiceCard = ({ service, onSelect }: { service: Service; onSe
         ? service.price_min * (1 - service.discount_percentage / 100)
         : null;
 
-    return (
-        <div className="group bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden hover:shadow-xl transition-all duration-300 hover:border-blue-300 dark:hover:border-blue-600">
-            {/* Service Header */}
-            <div className="relative p-6 pb-4">
-                {service.popular && (
-                    <div className="absolute top-4 right-4">
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-orange-400 to-pink-500 text-white">
-                            <Sparkles size={12} className="mr-1" />
-                            Popular
-                        </span>
-                    </div>
-                )}
+    const handleViewDetails = () => {
+        // Navigate to service details page
+        window.location.href = `/service-details/${service.id}`;
+    };
 
-                <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1">
-                        <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
-                            {service.name}
-                        </h3>
-                        {service.category && (
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400">
-                                {service.category}
+    return (
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden hover:shadow-xl transition-all duration-300 group">
+            {/* Header with Popular Badge */}
+            {service.popular && (
+                <div className="bg-gradient-to-r from-orange-400 to-pink-500 text-white text-center py-2">
+                    <span className="text-sm font-medium flex items-center justify-center">
+                        <Sparkles size={16} className="mr-2" />
+                        Popular Choice
+                    </span>
+                </div>
+            )}
+
+            <div className="p-6">
+                {/* Service Title & Category */}
+                <div className="mb-4">
+                    <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
+                        {service.name}
+                    </h3>
+                    <p className="text-slate-600 dark:text-slate-400 text-sm mb-3 line-clamp-2">
+                        {service.description || 'Professional service tailored to your needs.'}
+                    </p>
+                    {service.category && (
+                        <span className="inline-block px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-sm rounded-full">
+                            {service.category}
+                        </span>
+                    )}
+                </div>
+
+                {/* Key Features */}
+                <div className="flex items-center gap-4 mb-4 text-sm text-slate-600 dark:text-slate-400">
+                    <div className="flex items-center">
+                        <Timer size={16} className="mr-1 text-blue-500" />
+                        {service.duration_minutes || 60} mins
+                    </div>
+                    <div className="flex items-center">
+                        <Shield size={16} className="mr-1 text-green-500" />
+                        Guaranteed
+                    </div>
+                    <div className="flex items-center ml-auto">
+                        <Star className="text-yellow-400 fill-current mr-1" size={16} />
+                        <span className="font-medium">4.9</span>
+                        <span className="text-xs ml-1">(256)</span>
+                    </div>
+                </div>
+
+                {/* Pricing */}
+                <div className="mb-6">
+                    <div className="flex items-center space-x-2 mb-1">
+                        {discountedPrice ? (
+                            <>
+                                <span className="text-2xl font-bold text-green-600 dark:text-green-400">
+                                    ₱{discountedPrice.toLocaleString()}
+                                </span>
+                                <span className="text-lg text-slate-400 line-through">
+                                    ₱{service.price_min.toLocaleString()}
+                                </span>
+                                <span className="bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400 px-2 py-1 rounded-full text-xs font-medium">
+                                    -{service.discount_percentage}% OFF
+                                </span>
+                            </>
+                        ) : (
+                            <span className="text-2xl font-bold text-slate-900 dark:text-white">
+                                {service.price_min === service.price_max 
+                                    ? `₱${service.price_min.toLocaleString()}`
+                                    : `₱${service.price_min.toLocaleString()} - ₱${service.price_max.toLocaleString()}`
+                                }
                             </span>
                         )}
                     </div>
+                    <span className="text-sm text-slate-500 dark:text-slate-400">Starting price</span>
                 </div>
 
-                <p className="text-slate-600 dark:text-slate-400 text-sm mb-4 line-clamp-2">
-                    {service.description || 'Professional service tailored to your needs.'}
-                </p>
-
-                {/* Service Features */}
-                <div className="grid grid-cols-2 gap-3 mb-4">
-                    <div className="flex items-center text-sm text-slate-600 dark:text-slate-400">
-                        <Timer size={14} className="mr-2 text-blue-500" />
-                        {service.duration_minutes || 60} mins
-                    </div>
-                    <div className="flex items-center text-sm text-slate-600 dark:text-slate-400">
-                        <Shield size={14} className="mr-2 text-green-500" />
-                        Guaranteed
-                    </div>
+                {/* Action Buttons */}
+                <div className="flex gap-3">
+                    <button
+                        onClick={handleViewDetails}
+                        className="flex-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center"
+                    >
+                        <Eye size={16} className="mr-2" />
+                        View Details
+                    </button>
+                    <button
+                        onClick={() => onSelect(service)}
+                        className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 flex items-center justify-center group"
+                    >
+                        Select Service
+                        <ChevronRight size={16} className="ml-2 group-hover:translate-x-1 transition-transform" />
+                    </button>
                 </div>
-
-                {/* What's Included */}
-                {service.includes && service.includes.length > 0 && (
-                    <div className="mb-4">
-                        <h4 className="text-sm font-medium text-slate-900 dark:text-white mb-2">
-                            What's Included:
-                        </h4>
-                        <ul className="space-y-1">
-                            {service.includes.slice(0, 3).map((item, index) => (
-                                <li key={index} className="flex items-center text-xs text-slate-600 dark:text-slate-400">
-                                    <CheckCircle size={12} className="mr-2 text-green-500 flex-shrink-0" />
-                                    {item}
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
-                )}
-
-                {/* Requirements */}
-                {service.requirements && service.requirements.length > 0 && (
-                    <div className="mb-4">
-                        <div className="flex items-center text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 rounded-lg p-2">
-                            <AlertCircle size={12} className="mr-2 flex-shrink-0" />
-                            <span>
-                                {service.requirements.length} requirement{service.requirements.length > 1 ? 's' : ''} needed
-                            </span>
-                        </div>
-                    </div>
-                )}
-            </div>
-
-            {/* Pricing & Action */}
-            <div className="px-6 pb-6">
-                <div className="flex items-center justify-between mb-4">
-                    <div className="flex flex-col">
-                        <div className="flex items-center space-x-2">
-                            {discountedPrice ? (
-                                <>
-                                    <span className="text-2xl font-bold text-green-600 dark:text-green-400">
-                                        ₱{discountedPrice.toLocaleString()}
-                                    </span>
-                                    <span className="text-sm text-slate-400 line-through">
-                                        ₱{service.price_min.toLocaleString()}
-                                    </span>
-                                    <span className="text-xs bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400 px-2 py-1 rounded-full">
-                                        -{service.discount_percentage}%
-                                    </span>
-                                </>
-                            ) : (
-                                <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                                    {service.price_min === service.price_max 
-                                        ? `₱${service.price_min.toLocaleString()}`
-                                        : `₱${service.price_min.toLocaleString()} - ₱${service.price_max.toLocaleString()}`
-                                    }
-                                </span>
-                            )}
-                        </div>
-                        <span className="text-xs text-slate-500 dark:text-slate-400">
-                            Starting price
-                        </span>
-                    </div>
-
-                    <div className="text-right">
-                        <div className="flex items-center justify-end mb-1">
-                            <Star className="text-yellow-400 fill-current" size={14} />
-                            <span className="text-sm font-medium text-slate-700 dark:text-slate-300 ml-1">
-                                4.9
-                            </span>
-                        </div>
-                        <span className="text-xs text-slate-500 dark:text-slate-400">
-                            256 reviews
-                        </span>
-                    </div>
-                </div>
-
-                <button
-                    onClick={() => onSelect(service)}
-                    className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 flex items-center justify-center group"
-                >
-                    <span>Select Service</span>
-                    <ChevronRight size={16} className="ml-2 group-hover:translate-x-1 transition-transform" />
-                </button>
             </div>
         </div>
     );
@@ -827,9 +799,18 @@ export default function ProfessionalAppointments({ vendorStores = [] }: Props) {
                                                     <h2 className="text-2xl font-bold mb-2">
                                                         {selectedStore.business_name}
                                                     </h2>
-                                                    <p className="text-indigo-100 mb-4">
-                                                        Choose from our professional services
-                                                    </p>
+                                                    <div className="flex items-center justify-between mb-4">
+                                                        <p className="text-indigo-100">
+                                                            Choose from our professional services
+                                                        </p>
+                                                        <button
+                                                            onClick={() => window.location.href = `/messages?vendor=${selectedStore.id}`}
+                                                            className="bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center text-sm"
+                                                        >
+                                                            <MessageSquare size={16} className="mr-2" />
+                                                            Message
+                                                        </button>
+                                                    </div>
                                                     <div className="flex items-center gap-6 text-sm">
                                                         <div className="flex items-center">
                                                             <Star className="text-yellow-400 fill-current mr-1" size={16} />
