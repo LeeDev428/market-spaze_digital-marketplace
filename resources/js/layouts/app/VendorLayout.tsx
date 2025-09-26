@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { Link, usePage } from '@inertiajs/react'; // Add usePage import
 import LogoutButton from '../../components_vendor/LogoutButton';
+import NotificationDropdown from '../../components/NotificationDropdown';
 import { 
     Store, 
     Package, 
@@ -98,7 +99,10 @@ export default function VendorLayout({ children }: { children: React.ReactNode }
     const [searchQuery, setSearchQuery] = useState('');
     const [userMenuOpen, setUserMenuOpen] = useState(false);
     const [messageCount, setMessageCount] = useState(0);
+    const [notificationCount, setNotificationCount] = useState(0);
+    const [isNotificationOpen, setIsNotificationOpen] = useState(false);
     const socketRef = useRef<Socket | null>(null);
+    const notificationBellRef = useRef<HTMLButtonElement | null>(null);
 
     useEffect(() => {
         const handleResize = () => setWindowWidth(window.innerWidth);
