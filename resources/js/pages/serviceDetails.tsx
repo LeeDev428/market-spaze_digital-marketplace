@@ -30,6 +30,13 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Service Details', href: '#' },
 ];
 
+interface ServiceImage {
+    id: number;
+    url: string;
+    is_primary: boolean;
+    alt_text: string;
+}
+
 interface ServiceDetailsProps {
     service?: {
         id: number;
@@ -43,7 +50,16 @@ interface ServiceDetailsProps {
         popular?: boolean;
         includes?: string[];
         requirements?: string[];
-        images?: string[];
+        images?: ServiceImage[];
+        rating?: number;
+        total_reviews?: number;
+        has_warranty?: boolean;
+        warranty_days?: number;
+        pickup_available?: boolean;
+        delivery_available?: boolean;
+        emergency_service?: boolean;
+        special_instructions?: string;
+        tags?: string[];
     };
     vendor?: {
         id: number;
@@ -92,11 +108,18 @@ export default function ServiceDetails({ service, vendor }: ServiceDetailsProps)
         ? service.price_min * (1 - service.discount_percentage / 100)
         : null;
 
-        const images = service?.images || [
-        '/img/service-placeholder-1.jpg',
-        '/img/service-placeholder-2.jpg',
-        '/img/service-placeholder-3.jpg'
-    ];
+        const images = service?.images || [];
+        const placeholderImages = [
+            '/img/service-placeholder-1.jpg',
+            '/img/service-placeholder-2.jpg',
+            '/img/service-placeholder-3.jpg'
+        ];
+        const displayImages = images.length > 0 ? images : placeholderImages.map((url, index) => ({
+            id: index,
+            url,
+            is_primary: index === 0,
+            alt_text: `Service placeholder ${index + 1}`
+        }));
 
     const handleBookService = () => {
         // Navigate back to appointments with this service selected
@@ -105,7 +128,9 @@ export default function ServiceDetails({ service, vendor }: ServiceDetailsProps)
 
     const handleContactVendor = () => {
         // Navigate to messages with this vendor
-        window.location.href = `/messages?vendor=${vendor?.id}`;
+        if (vendor?.id) {
+            window.location.href = `/messages?vendor=${vendor.id}`;
+        }
     };
 
     return (
@@ -129,8 +154,8 @@ export default function ServiceDetails({ service, vendor }: ServiceDetailsProps)
                             <div className="space-y-4">
                                 <div className="relative bg-white dark:bg-slate-800 rounded-2xl overflow-hidden shadow-lg">
                                     <img
-                                        src={images[currentImageIndex]}
-                                        alt={service?.name || 'Service'}
+                                        src={displayImages[currentImageIndex].url}
+                                        alt={displayImages[currentImageIndex].alt_text || service?.name || 'Service'}
                                         className="w-full h-96 object-cover"
                                     />
                                     {service?.popular && (
@@ -149,16 +174,16 @@ export default function ServiceDetails({ service, vendor }: ServiceDetailsProps)
                                             <Share2 size={20} className="text-slate-600 dark:text-slate-400" />
                                         </button>
                                     </div>
-                                    {images.length > 1 && (
+                                    {displayImages.length > 1 && (
                                         <>
                                             <button
-                                                onClick={() => setCurrentImageIndex(prev => prev > 0 ? prev - 1 : images.length - 1)}
+                                                onClick={() => setCurrentImageIndex(prev => prev > 0 ? prev - 1 : displayImages.length - 1)}
                                                 className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm p-2 rounded-full hover:bg-white dark:hover:bg-slate-700 transition-colors"
                                             >
                                                 <ChevronLeft size={20} />
                                             </button>
                                             <button
-                                                onClick={() => setCurrentImageIndex(prev => prev < images.length - 1 ? prev + 1 : 0)}
+                                                onClick={() => setCurrentImageIndex(prev => prev < displayImages.length - 1 ? prev + 1 : 0)}
                                                 className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm p-2 rounded-full hover:bg-white dark:hover:bg-slate-700 transition-colors"
                                             >
                                                 <ChevronRight size={20} />
@@ -168,11 +193,11 @@ export default function ServiceDetails({ service, vendor }: ServiceDetailsProps)
                                 </div>
                                 
                                 {/* Thumbnail Images */}
-                                {images.length > 1 && (
+                                {displayImages.length > 1 && (
                                     <div className="flex gap-3 overflow-x-auto pb-2">
-                                        {images.map((image, index) => (
+                                        {displayImages.map((image, index) => (
                                             <button
-                                                key={index}
+                                                key={image.id}
                                                 onClick={() => setCurrentImageIndex(index)}
                                                 className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-colors ${
                                                     currentImageIndex === index 
@@ -181,8 +206,8 @@ export default function ServiceDetails({ service, vendor }: ServiceDetailsProps)
                                                 }`}
                                             >
                                                 <img
-                                                    src={image}
-                                                    alt={`${service?.name || 'Service'} ${index + 1}`}
+                                                    src={image.url}
+                                                    alt={image.alt_text || `${service?.name || 'Service'} ${index + 1}`}
                                                     className="w-full h-full object-cover"
                                                 />
                                             </button>
@@ -201,8 +226,8 @@ export default function ServiceDetails({ service, vendor }: ServiceDetailsProps)
                                         </span>
                                         <div className="flex items-center text-sm text-slate-600 dark:text-slate-400">
                                             <Star className="text-yellow-400 fill-current mr-1" size={16} />
-                                            <span className="font-medium">4.9</span>
-                                            <span className="ml-1">(256 reviews)</span>
+                                            <span className="font-medium">{service?.rating || '0.0'}</span>
+                                            <span className="ml-1">({service?.total_reviews || 0} reviews)</span>
                                         </div>
                                     </div>
                                     
@@ -240,14 +265,22 @@ export default function ServiceDetails({ service, vendor }: ServiceDetailsProps)
                                             <Timer size={16} className="mr-2 text-blue-500" />
                                             {service?.duration_minutes} minutes
                                         </div>
-                                        <div className="flex items-center">
-                                            <Shield size={16} className="mr-2 text-green-500" />
-                                            Guaranteed Service
-                                        </div>
+                                        {service?.has_warranty && (
+                                            <div className="flex items-center">
+                                                <Shield size={16} className="mr-2 text-green-500" />
+                                                {service.warranty_days} days warranty
+                                            </div>
+                                        )}
                                         <div className="flex items-center">
                                             <Award size={16} className="mr-2 text-purple-500" />
                                             Professional
                                         </div>
+                                        {service?.emergency_service && (
+                                            <div className="flex items-center">
+                                                <AlertTriangle size={16} className="mr-2 text-red-500" />
+                                                Emergency
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* Action Buttons */}
