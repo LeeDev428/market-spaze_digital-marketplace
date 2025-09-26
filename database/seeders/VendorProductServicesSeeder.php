@@ -63,8 +63,27 @@ class VendorProductServicesSeeder extends Seeder
                 'vendor_store_id' => $freshMart->id,
                 'name' => 'Express Grocery',
                 'description' => 'Quick grocery delivery within 1 hour for essential items.',
+                'category' => 'Grocery & Food',
                 'price_min' => 200.00,
                 'price_max' => 2000.00,
+                'duration_minutes' => 60,
+                'is_popular' => true,
+                'rating' => 4.5,
+                'total_reviews' => 89,
+                'response_time' => 'Within 1 hour',
+                'includes' => json_encode([
+                    'Express delivery',
+                    'Fresh quality guarantee',
+                    'Real-time tracking'
+                ]),
+                'requirements' => json_encode([
+                    'Delivery area must be accessible',
+                    'Someone must be available to receive order'
+                ]),
+                'pickup_available' => false,
+                'delivery_available' => true,
+                'slug' => 'express-grocery',
+                'tags' => json_encode(['grocery', 'express', 'delivery', 'food']),
                 'is_active' => true,
             ]);
 
