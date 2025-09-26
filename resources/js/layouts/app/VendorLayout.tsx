@@ -96,7 +96,7 @@ export default function VendorLayout({ children }: { children: React.ReactNode }
     const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
     const [searchQuery, setSearchQuery] = useState('');
     const [userMenuOpen, setUserMenuOpen] = useState(false);
-    const [unreadCount, setUnreadCount] = useState(0);
+    const [messageCount, setMessageCount] = useState(0);
 
     useEffect(() => {
         const handleResize = () => setWindowWidth(window.innerWidth);
@@ -119,25 +119,25 @@ export default function VendorLayout({ children }: { children: React.ReactNode }
         if (!isMobile) setSidebarOpen(false);
     }, [isMobile]);
 
-    // Fetch unread messages count
+    // Fetch total messages count
     useEffect(() => {
-        const fetchUnreadCount = async () => {
+        const fetchMessageCount = async () => {
             if (auth?.user?.id) {
                 try {
-                    const response = await fetch(`http://127.0.0.1:3003/api/messages/unread-count/${auth.user.id}`);
+                    const response = await fetch(`http://127.0.0.1:3003/api/messages/total-count/${auth.user.id}`);
                     const data = await response.json();
                     if (data.success) {
-                        setUnreadCount(data.unread_count);
+                        setMessageCount(data.total_count);
                     }
                 } catch (error) {
-                    console.error('Failed to fetch unread count:', error);
+                    console.error('Failed to fetch message count:', error);
                 }
             }
         };
 
-        fetchUnreadCount();
+        fetchMessageCount();
         // Poll for updates every 30 seconds
-        const interval = setInterval(fetchUnreadCount, 30000);
+        const interval = setInterval(fetchMessageCount, 30000);
         return () => clearInterval(interval);
     }, [auth?.user?.id]);
 
@@ -243,7 +243,20 @@ export default function VendorLayout({ children }: { children: React.ReactNode }
                                     {link.icon}
                                 </div>
                                 <div className="flex-1">
-                                    <p className="font-medium">{link.label}</p>
+                                    <div className="flex items-center justify-between">
+                                        <p className="font-medium">{link.label}</p>
+                                        {link.label === 'Messages' && messageCount > 0 && (
+                                            <span className={`
+                                                text-xs px-2 py-1 rounded-full font-medium min-w-[20px] text-center
+                                                ${isActive 
+                                                    ? 'bg-white/20 text-white' 
+                                                    : 'bg-blue-500 text-white'
+                                                }
+                                            `}>
+                                                {messageCount > 99 ? '99+' : messageCount}
+                                            </span>
+                                        )}
+                                    </div>
                                     <p className={`text-xs ${isActive ? 'text-white/80' : 'text-slate-500 dark:text-slate-400'}`}>
                                         {link.description}
                                     </p>
@@ -318,10 +331,10 @@ export default function VendorLayout({ children }: { children: React.ReactNode }
                                     className="relative p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors inline-block"
                                 >
                                     <MessageSquare size={20} className="text-slate-600 dark:text-slate-400" />
-                                    {unreadCount > 0 && (
+                                    {messageCount > 0 && (
                                         <span className="absolute -top-1 -right-1 w-5 h-5 bg-blue-500 text-white text-xs 
                                                        rounded-full flex items-center justify-center min-w-[20px]">
-                                            {unreadCount > 99 ? '99+' : unreadCount}
+                                            {messageCount > 99 ? '99+' : messageCount}
                                         </span>
                                     )}
                                 </Link>
