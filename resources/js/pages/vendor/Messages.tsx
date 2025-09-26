@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Head } from '@inertiajs/react';
 import VendorLayout from '@/layouts/app/VendorLayout';
-import { MessageSquare, Send, User, Clock, Check, CheckCheck } from 'lucide-react';
+import { MessageSquare, Send, User, Clock, Check, CheckCheck, RefreshCw } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
 
 interface User {
@@ -53,6 +53,8 @@ export default function Messages({ auth }: MessagesProps) {
     const [newMessage, setNewMessage] = useState('');
     const [loading, setLoading] = useState(true);
     const [onlineUsers, setOnlineUsers] = useState<Set<number>>(new Set());
+    const [connected, setConnected] = useState(false);
+    const [lastApiResponse, setLastApiResponse] = useState<any>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const socketRef = useRef<Socket | null>(null);
 
@@ -64,11 +66,21 @@ export default function Messages({ auth }: MessagesProps) {
 
         const socket = socketRef.current;
 
-        // Join the socket with user info
-        socket.emit('join', {
-            userId: auth.user.id,
-            userType: auth.user.user_type || 'vendor',
-            userName: auth.user.name
+        socket.on('connect', () => {
+            console.log('✅ Socket connected');
+            setConnected(true);
+            
+            // Join the socket with user info
+            socket.emit('join', {
+                userId: auth.user.id,
+                userType: auth.user.user_type || 'vendor',
+                userName: auth.user.name
+            });
+        });
+
+        socket.on('disconnect', () => {
+            console.log('❌ Socket disconnected');
+            setConnected(false);
         });
 
         // Listen for new messages
@@ -141,8 +153,19 @@ export default function Messages({ auth }: MessagesProps) {
 
     // Load conversations on component mount
     useEffect(() => {
+        console.log('🚀 Component mounted, loading conversations for vendor:', auth.user);
         loadConversations();
     }, []);
+
+    // Debug current state
+    useEffect(() => {
+        console.log('📊 Current state:', {
+            conversations: conversations.length,
+            selectedConversation,
+            messages: messages.length,
+            loading
+        });
+    }, [conversations, selectedConversation, messages, loading]);
 
     // Auto-scroll to bottom when new messages arrive
     const scrollToBottom = () => {
@@ -160,6 +183,7 @@ export default function Messages({ auth }: MessagesProps) {
             const data = await response.json();
             
             console.log('📋 Conversations response:', data);
+            setLastApiResponse(data);
             
             if (data.success) {
                 setConversations(data.conversations);
@@ -170,6 +194,7 @@ export default function Messages({ auth }: MessagesProps) {
             setLoading(false);
         } catch (error) {
             console.error('❌ Failed to load conversations:', error);
+            setLastApiResponse({ error: error.message });
             setLoading(false);
         }
     };
@@ -289,15 +314,42 @@ export default function Messages({ auth }: MessagesProps) {
                             {/* Conversations List */}
                             <div className="w-1/3 border-r border-gray-200 dark:border-gray-700">
                                 <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-                                    <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
-                                        Conversations
-                                    </h3>
+                                    <div className="flex items-center justify-between">
+                                        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
+                                            Conversations
+                                        </h3>
+                                        <button
+                                            onClick={loadConversations}
+                                            className="p-2 text-gray-600 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors"
+                                            title="Refresh conversations"
+                                        >
+                                            <RefreshCw size={16} />
+                                        </button>
+                                    </div>
                                 </div>
                                 
                                 <div className="overflow-y-auto h-full">
                                     {conversations.length === 0 ? (
                                         <div className="p-4 text-center text-gray-500">
-                                            No conversations yet
+                                            <div className="mb-2">No conversations yet</div>
+                                            <div className="text-xs mb-2">
+                                                Vendor ID: {auth.user.id}<br/>
+                                                Name: {auth.user.name}<br/>
+                                                Type: {auth.user.user_type}<br/>
+                                                Socket: {connected ? '🟢 Connected' : '🔴 Disconnected'}
+                                            </div>
+                                            {lastApiResponse && (
+                                                <div className="text-xs mb-2 p-2 bg-gray-100 dark:bg-gray-700 rounded">
+                                                    <strong>Last API Response:</strong><br/>
+                                                    {JSON.stringify(lastApiResponse, null, 2)}
+                                                </div>
+                                            )}
+                                            <button
+                                                onClick={loadConversations}
+                                                className="mt-2 px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
+                                            >
+                                                Refresh
+                                            </button>
                                         </div>
                                     ) : (
                                         conversations.map((conversation) => (
