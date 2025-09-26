@@ -11,9 +11,10 @@ import { useInitials } from '@/hooks/use-initials';
 import { cn } from '@/lib/utils';
 import { type BreadcrumbItem, type NavItem, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
-import { BookOpen, Folder, LayoutGrid, Menu, Search } from 'lucide-react';
+import { BookOpen, Folder, LayoutGrid, Menu, Search, Bell } from 'lucide-react';
 import AppLogo from './app-logo';
 import AppLogoIcon from './app-logo-icon';
+import { useState, useEffect } from 'react';
 
 const mainNavItems: NavItem[] = [
     {
@@ -37,6 +38,31 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
     const page = usePage<SharedData>();
     const { auth } = page.props;
     const getInitials = useInitials();
+    const [unreadCount, setUnreadCount] = useState(0);
+
+    // Fetch unread messages count
+    useEffect(() => {
+        const fetchUnreadCount = async () => {
+            if (auth?.user?.id) {
+                try {
+                    const response = await fetch(`http://127.0.0.1:3003/api/messages/unread-count/${auth.user.id}`);
+                    const data = await response.json();
+                    if (data.success) {
+                        setUnreadCount(data.unread_count);
+                    }
+                } catch (error) {
+                    console.error('Failed to fetch unread count:', error);
+                }
+            }
+        };
+
+        fetchUnreadCount();
+        // For testing: Set some unread messages
+        setUnreadCount(3);
+        // Poll for updates every 30 seconds
+        const interval = setInterval(fetchUnreadCount, 30000);
+        return () => clearInterval(interval);
+    }, [auth?.user?.id]);
     return (
         <>
             <div className="border-b border-sidebar-border/80">
@@ -120,6 +146,49 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                             <Button variant="ghost" size="icon" className="group h-9 w-9 cursor-pointer">
                                 <Search className="!size-5 opacity-80 group-hover:opacity-100" />
                             </Button>
+                            
+                            {/* Message Notification Bell */}
+                            <TooltipProvider delayDuration={0}>
+                                <Tooltip>
+                                    <TooltipTrigger>
+                                        <Link
+                                            href="/messages"
+                                            className="group relative inline-flex h-9 w-9 items-center justify-center rounded-md bg-transparent p-0 text-sm font-medium text-accent-foreground ring-offset-background transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
+                                        >
+                                            <Bell className="size-5 opacity-80 group-hover:opacity-100" />
+                                            {unreadCount > 0 && (
+                                                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-xs rounded-full flex items-center justify-center px-1">
+                                                    {unreadCount > 99 ? '99+' : unreadCount}
+                                                </span>
+                                            )}
+                                        </Link>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>{unreadCount > 0 ? `${unreadCount} unread messages` : 'No unread messages'}</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                            
+                            {/* Messages Notification Bell */}
+                            <TooltipProvider delayDuration={0}>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Link href="/messages">
+                                            <Button variant="ghost" size="icon" className="group relative h-9 w-9 cursor-pointer">
+                                                <Bell className="!size-5 opacity-80 group-hover:opacity-100" />
+                                                {unreadCount > 0 && (
+                                                    <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-medium">
+                                                        {unreadCount > 99 ? '99+' : unreadCount}
+                                                    </span>
+                                                )}
+                                            </Button>
+                                        </Link>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>{unreadCount > 0 ? `${unreadCount} unread messages` : 'Messages'}</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
                             <div className="hidden lg:flex">
                                 {rightNavItems.map((item) => (
                                     <TooltipProvider key={item.title} delayDuration={0}>
