@@ -91,8 +91,26 @@ class VendorProductServicesSeeder extends Seeder
                 'vendor_store_id' => $freshMart->id,
                 'name' => 'Bulk Shopping',
                 'description' => 'Wholesale grocery shopping for events, parties, or monthly stocking.',
+                'category' => 'Grocery & Food',
                 'price_min' => 2000.00,
                 'price_max' => 20000.00,
+                'duration_minutes' => 180,
+                'rating' => 4.6,
+                'total_reviews' => 45,
+                'response_time' => 'Within 4 hours',
+                'includes' => json_encode([
+                    'Bulk pricing discounts',
+                    'Free delivery for large orders',
+                    'Quality assurance'
+                ]),
+                'requirements' => json_encode([
+                    'Minimum order value required',
+                    'Advanced booking recommended'
+                ]),
+                'pickup_available' => true,
+                'delivery_available' => true,
+                'slug' => 'bulk-shopping',
+                'tags' => json_encode(['grocery', 'bulk', 'wholesale', 'events']),
                 'is_active' => true,
             ]);
 
