@@ -31,7 +31,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 interface ServiceDetailsProps {
-    service: {
+    service?: {
         id: number;
         name: string;
         description: string;
@@ -45,7 +45,7 @@ interface ServiceDetailsProps {
         requirements?: string[];
         images?: string[];
     };
-    vendor: {
+    vendor?: {
         id: number;
         business_name: string;
         description: string;
@@ -63,11 +63,36 @@ export default function ServiceDetails({ service, vendor }: ServiceDetailsProps)
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [showFullDescription, setShowFullDescription] = useState(false);
 
+    // Safety check for undefined service
+    if (!service || !vendor) {
+        return (
+            <AppLayout breadcrumbs={breadcrumbs}>
+                <Head title="Service Details" />
+                <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
+                    <div className="container mx-auto px-4 py-8">
+                        <div className="text-center">
+                            <AlertTriangle className="h-16 w-16 text-amber-500 mx-auto mb-4" />
+                            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Service Not Found</h2>
+                            <p className="text-slate-600 dark:text-slate-400 mb-6">The requested service could not be found.</p>
+                            <button
+                                onClick={() => window.history.back()}
+                                className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                            >
+                                <ArrowLeft className="mr-2" size={20} />
+                                Go Back
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </AppLayout>
+        );
+    }
+
     const discountedPrice = service.discount_percentage 
         ? service.price_min * (1 - service.discount_percentage / 100)
         : null;
 
-    const images = service.images || [
+    const images = service?.images || [
         '/img/service-placeholder-1.jpg',
         '/img/service-placeholder-2.jpg',
         '/img/service-placeholder-3.jpg'
@@ -75,7 +100,7 @@ export default function ServiceDetails({ service, vendor }: ServiceDetailsProps)
 
     const handleBookService = () => {
         // Navigate back to appointments with this service selected
-        window.location.href = `/appointments?service=${service.id}`;
+        window.location.href = `/appointments?service=${service?.id}`;
     };
 
     const handleContactVendor = () => {
