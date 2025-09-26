@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Head } from '@inertiajs/react';
 import VendorLayout from '@/layouts/app/VendorLayout';
-import { MessageSquare, Send, User, Clock, Check, CheckCheck, RefreshCw } from 'lucide-react';
+import { MessageSquare, Send, User, Clock, Check, CheckCheck, RefreshCw, Search } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
 
 interface User {
@@ -48,6 +48,8 @@ interface MessagesProps {
 
 export default function Messages({ auth }: MessagesProps) {
     const [conversations, setConversations] = useState<Conversation[]>([]);
+    const [filteredConversations, setFilteredConversations] = useState<Conversation[]>([]);
+    const [searchQuery, setSearchQuery] = useState('');
     const [selectedConversation, setSelectedConversation] = useState<number | null>(null);
     const [messages, setMessages] = useState<Message[]>([]);
     const [newMessage, setNewMessage] = useState('');
@@ -57,6 +59,7 @@ export default function Messages({ auth }: MessagesProps) {
     const [lastApiResponse, setLastApiResponse] = useState<any>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const socketRef = useRef<Socket | null>(null);
+    const lastActivityRef = useRef<number>(Date.now());
 
     // Initialize Socket.IO connection
     useEffect(() => {
@@ -120,10 +123,12 @@ export default function Messages({ auth }: MessagesProps) {
 
         // Listen for user online/offline status
         socket.on('user_online', (userData: { userId: number; userType: string; userName: string }) => {
+            console.log('User came online:', userData);
             setOnlineUsers(prev => new Set([...prev, userData.userId]));
         });
 
         socket.on('user_offline', (userData: { userId: number; userType: string; userName: string }) => {
+            console.log('User went offline:', userData);
             setOnlineUsers(prev => {
                 const newSet = new Set(prev);
                 newSet.delete(userData.userId);
@@ -131,10 +136,45 @@ export default function Messages({ auth }: MessagesProps) {
             });
         });
 
+        // Handle bulk online users update
+        socket.on('online_users', (userIds: number[]) => {
+            console.log('Received online users list:', userIds);
+            setOnlineUsers(new Set(userIds));
+        });
+
         return () => {
             socket.disconnect();
         };
     }, [auth.user, selectedConversation]);
+
+    // Track user activity for online status
+    useEffect(() => {
+        const updateActivity = () => {
+            lastActivityRef.current = Date.now();
+            if (socketRef.current && connected) {
+                socketRef.current.emit('user_activity', {
+                    userId: auth.user.id,
+                    timestamp: Date.now()
+                });
+            }
+        };
+
+        const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
+        events.forEach(event => document.addEventListener(event, updateActivity, true));
+
+        // Send activity ping every 30 seconds
+        const activityInterval = setInterval(() => {
+            const timeSinceLastActivity = Date.now() - lastActivityRef.current;
+            if (timeSinceLastActivity < 300000 && connected) { // 5 minutes
+                updateActivity();
+            }
+        }, 30000);
+
+        return () => {
+            events.forEach(event => document.removeEventListener(event, updateActivity, true));
+            clearInterval(activityInterval);
+        };
+    }, [auth.user.id, connected]);
 
     // Load conversations on component mount
     useEffect(() => {
@@ -157,6 +197,12 @@ export default function Messages({ auth }: MessagesProps) {
             
             if (data.success) {
                 setConversations(data.conversations);
+                setFilteredConversations(data.conversations);
+                
+                // For testing: Set all conversation users as online
+                const userIds = data.conversations.map((conv: any) => conv.user_id);
+                console.log('Setting these users as online for testing:', userIds);
+                setOnlineUsers(new Set(userIds));
             }
             setLoading(false);
         } catch (error) {
@@ -164,6 +210,18 @@ export default function Messages({ auth }: MessagesProps) {
             setLoading(false);
         }
     };
+
+    // Filter conversations based on search query
+    useEffect(() => {
+        if (!searchQuery.trim()) {
+            setFilteredConversations(conversations);
+        } else {
+            const filtered = conversations.filter((conversation) =>
+                conversation.user_name.toLowerCase().includes(searchQuery.toLowerCase())
+            );
+            setFilteredConversations(filtered);
+        }
+    }, [searchQuery, conversations]);
 
     const updateConversationsList = async () => {
         try {
@@ -259,10 +317,39 @@ export default function Messages({ auth }: MessagesProps) {
         <VendorLayout>
             <Head title="Messages" />
             
-            {/* Page Header */}
-            <div className="bg-white dark:bg-gray-800 shadow-sm">
+            {/* Page Header - Fixed Height */}
+            <div className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
                 <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Messages</h1>
+                    <div className="flex items-center justify-between">
+                        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Messages</h1>
+                        <div className="flex items-center space-x-4 text-sm">
+                            <div className="flex items-center space-x-2">
+                                <div className={`w-2 h-2 rounded-full ${connected ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                                <span className="text-gray-600 dark:text-gray-400">
+                                    {connected ? 'Connected' : 'Disconnected'}
+                                </span>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <div className="text-gray-600 dark:text-gray-400">
+                                    Online: {onlineUsers.size} users
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        // Toggle all conversation users as online/offline for testing
+                                        if (onlineUsers.size > 0) {
+                                            setOnlineUsers(new Set());
+                                        } else {
+                                            const userIds = conversations.map(conv => conv.user_id);
+                                            setOnlineUsers(new Set(userIds));
+                                        }
+                                    }}
+                                    className="px-3 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600"
+                                >
+                                    Test Online
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -271,9 +358,9 @@ export default function Messages({ auth }: MessagesProps) {
                     <div className="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                         <div className="flex h-[600px]">
                             {/* Conversations List */}
-                            <div className="w-1/3 border-r border-gray-200 dark:border-gray-700">
-                                <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-                                    <div className="flex items-center justify-between">
+                            <div className="w-1/3 border-r border-gray-200 dark:border-gray-700 flex flex-col">
+                                <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+                                    <div className="flex items-center justify-between mb-3">
                                         <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
                                             Conversations
                                         </h3>
@@ -285,24 +372,57 @@ export default function Messages({ auth }: MessagesProps) {
                                             <RefreshCw size={16} />
                                         </button>
                                     </div>
+                                    {/* Search Bar */}
+                                    <div className="relative">
+                                        <Search size={16} className="absolute left-3 top-2.5 text-gray-400" />
+                                        <input
+                                            type="text"
+                                            placeholder="Search conversations..."
+                                            value={searchQuery}
+                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                            className="w-full pl-10 pr-8 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg 
+                                                     bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100
+                                                     focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                                                     placeholder-gray-500 dark:placeholder-gray-400"
+                                        />
+                                        {searchQuery && (
+                                            <button
+                                                onClick={() => setSearchQuery('')}
+                                                className="absolute right-2 top-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-lg"
+                                            >
+                                                ×
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
                                 
-                                <div className="overflow-y-auto h-full">
-                                    {conversations.length === 0 ? (
+                                <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent">
+                                    {filteredConversations.length === 0 ? (
                                         <div className="p-8 text-center text-gray-500">
                                             <MessageSquare size={48} className="mx-auto mb-4 text-gray-300" />
-                                            <div className="text-lg font-medium mb-2">No conversations yet</div>
-                                            <p className="text-sm mb-4">When customers message you, their conversations will appear here.</p>
-                                            <button
-                                                onClick={loadConversations}
-                                                className="px-4 py-2 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600 transition-colors flex items-center space-x-2 mx-auto"
-                                            >
-                                                <RefreshCw size={16} />
-                                                <span>Check for Messages</span>
-                                            </button>
+                                            <div className="text-lg font-medium mb-2">
+                                                {searchQuery ? 'No conversations found' : 'No conversations yet'}
+                                            </div>
+                                            <p className="text-sm mb-4">
+                                                {searchQuery 
+                                                    ? `No conversations match "${searchQuery}"`
+                                                    : 'When customers message you, their conversations will appear here.'
+                                                }
+                                            </p>
+                                            {!searchQuery && (
+                                                <button
+                                                    onClick={loadConversations}
+                                                    className="px-4 py-2 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600 transition-colors flex items-center space-x-2 mx-auto"
+                                                >
+                                                    <RefreshCw size={16} />
+                                                    <span>Check for Messages</span>
+                                                </button>
+                                            )}
                                         </div>
                                     ) : (
-                                        conversations.map((conversation) => (
+                                        filteredConversations.map((conversation) => {
+                                            console.log(`Conversation ${conversation.user_id} online status:`, onlineUsers.has(conversation.user_id));
+                                            return (
                                             <div
                                                 key={conversation.user_id}
                                                 onClick={() => loadConversation(conversation.user_id)}
@@ -318,9 +438,14 @@ export default function Messages({ auth }: MessagesProps) {
                                                             <div className="w-10 h-10 bg-gray-300 dark:bg-gray-600 rounded-full flex items-center justify-center">
                                                                 <User size={20} className="text-gray-600 dark:text-gray-400" />
                                                             </div>
+                                                            {/* Online Status Indicator */}
                                                             {onlineUsers.has(conversation.user_id) && (
-                                                                <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-800"></div>
+                                                                <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-green-400 rounded-full border-2 border-white dark:border-gray-800 shadow-lg z-10"></div>
                                                             )}
+                                                            {/* Force show indicator for testing - remove in production */}
+                                                            <div className="absolute -top-0.5 -left-0.5 w-3 h-3 bg-red-500 rounded-full border border-white text-xs flex items-center justify-center text-white font-bold">
+                                                                {onlineUsers.has(conversation.user_id) ? '●' : '○'}
+                                                            </div>
                                                         </div>
                                                         <div className="flex-1 min-w-0">
                                                             <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
@@ -347,7 +472,8 @@ export default function Messages({ auth }: MessagesProps) {
                                                     <span className="capitalize">{conversation.user_type}</span>
                                                 </div>
                                             </div>
-                                        ))
+                                        );
+                                        })
                                     )}
                                 </div>
                             </div>
@@ -364,7 +490,7 @@ export default function Messages({ auth }: MessagesProps) {
                                                         <User size={20} className="text-gray-600 dark:text-gray-400" />
                                                     </div>
                                                     {onlineUsers.has(selectedUser.user_id) && (
-                                                        <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-700"></div>
+                                                        <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-green-400 rounded-full border-2 border-white dark:border-gray-700 shadow-lg"></div>
                                                     )}
                                                 </div>
                                                 <div>
@@ -379,7 +505,7 @@ export default function Messages({ auth }: MessagesProps) {
                                         </div>
 
                                         {/* Messages */}
-                                        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                                        <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent">
                                             {messages.map((message) => (
                                                 <div
                                                     key={message._id}
