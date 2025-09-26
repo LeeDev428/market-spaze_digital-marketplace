@@ -87,6 +87,22 @@ const messageSchema = new mongoose.Schema({
 
 const Message = mongoose.model('Message', messageSchema);
 
+// Function to update and emit unread count
+async function updateUnreadCount(userId) {
+  try {
+    const unreadCount = await Message.countDocuments({
+      recipient_id: userId,
+      is_read: false
+    });
+    
+    // Emit to the specific user
+    io.to(`user_${userId}`).emit('unread_count_update', { unreadCount });
+    console.log(`📊 Updated unread count for user ${userId}: ${unreadCount}`);
+  } catch (error) {
+    console.error('❌ Error updating unread count:', error);
+  }
+}
+
 // Socket.IO connection handling
 const connectedUsers = new Map();
 const userActivity = new Map(); // Track last activity time
