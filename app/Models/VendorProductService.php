@@ -62,4 +62,14 @@ class VendorProductService extends Model
     {
         return $this->belongsTo(VendorStore::class);
     }
+
+    public function images()
+    {
+        return $this->hasMany(ProductServiceImage::class, 'vendor_product_service_id')->orderBy('sort_order');
+    }
+
+    public function primaryImage()
+    {
+        return $this->hasOne(ProductServiceImage::class, 'vendor_product_service_id')->where('is_primary', true);
+    }
 }
