@@ -67,7 +67,6 @@ export default function Messages({ auth }: MessagesProps) {
         const socket = socketRef.current;
 
         socket.on('connect', () => {
-            console.log('✅ Socket connected');
             setConnected(true);
             
             // Join the socket with user info
@@ -85,45 +84,31 @@ export default function Messages({ auth }: MessagesProps) {
 
         // Listen for new messages
         socket.on('new_message', (message: Message) => {
-            console.log('📨 New message received:', message);
-            console.log('🔍 Current vendor ID:', auth.user.id);
-            console.log('🔍 Message sender:', message.sender.user_id, message.sender.name);
-            console.log('🔍 Message recipient:', message.recipient.user_id, message.recipient.name);
-            console.log('🔍 Selected conversation:', selectedConversation);
-            
             // Check if this message is for this vendor
             const isForThisVendor = message.recipient.user_id === auth.user.id || message.sender.user_id === auth.user.id;
             
             if (isForThisVendor) {
-                console.log('✅ Message is for this vendor');
-                
                 // Add message to current conversation if it's open
                 if (selectedConversation && 
                     (message.sender.user_id === selectedConversation || 
                      message.recipient.user_id === selectedConversation)) {
-                    console.log('➕ Adding message to current conversation');
                     setMessages(prev => [...prev, message]);
                     scrollToBottom();
                 }
 
                 // Update conversation list
-                console.log('🔄 Updating conversations list');
                 updateConversationsList();
-            } else {
-                console.log('❌ Message is not for this vendor');
             }
         });
 
         // Listen for message sent confirmation
         socket.on('message_sent', (message: Message) => {
-            console.log('✅ Message sent confirmation:', message);
             setMessages(prev => [...prev, message]);
             scrollToBottom();
         });
 
         // Listen for message read confirmations
         socket.on('messages_read', (data: { messageIds: string[]; readBy: number }) => {
-            console.log('👁️ Messages marked as read:', data);
             setMessages(prev => 
                 prev.map(msg => 
                     data.messageIds.includes(msg._id) 
@@ -153,19 +138,8 @@ export default function Messages({ auth }: MessagesProps) {
 
     // Load conversations on component mount
     useEffect(() => {
-        console.log('🚀 Component mounted, loading conversations for vendor:', auth.user);
         loadConversations();
     }, []);
-
-    // Debug current state
-    useEffect(() => {
-        console.log('📊 Current state:', {
-            conversations: conversations.length,
-            selectedConversation,
-            messages: messages.length,
-            loading
-        });
-    }, [conversations, selectedConversation, messages, loading]);
 
     // Auto-scroll to bottom when new messages arrive
     const scrollToBottom = () => {
@@ -178,23 +152,15 @@ export default function Messages({ auth }: MessagesProps) {
 
     const loadConversations = async () => {
         try {
-            console.log('🔄 Loading conversations for vendor:', auth.user.id);
             const response = await fetch(`http://127.0.0.1:3003/api/messages/conversations/${auth.user.id}`);
             const data = await response.json();
             
-            console.log('📋 Conversations response:', data);
-            setLastApiResponse(data);
-            
             if (data.success) {
                 setConversations(data.conversations);
-                console.log('✅ Loaded conversations:', data.conversations.length);
-            } else {
-                console.error('❌ Failed to load conversations:', data);
             }
             setLoading(false);
         } catch (error) {
-            console.error('❌ Failed to load conversations:', error);
-            setLastApiResponse({ error: error.message });
+            console.error('Failed to load conversations:', error);
             setLoading(false);
         }
     };
@@ -208,22 +174,18 @@ export default function Messages({ auth }: MessagesProps) {
                 setConversations(data.conversations);
             }
         } catch (error) {
-            console.error('Failed to update conversations:', error);
+            // Silently handle error
         }
     };
 
     const loadConversation = async (userId: number) => {
         try {
-            console.log('💬 Loading conversation between vendor', auth.user.id, 'and user', userId);
             setSelectedConversation(userId);
             const response = await fetch(`http://127.0.0.1:3003/api/messages/conversation/${auth.user.id}/${userId}`);
             const data = await response.json();
             
-            console.log('📨 Conversation messages response:', data);
-            
             if (data.success) {
                 setMessages(data.messages);
-                console.log('✅ Loaded messages:', data.messages.length);
                 
                 // Mark messages as read
                 const unreadMessages = data.messages
@@ -231,17 +193,14 @@ export default function Messages({ auth }: MessagesProps) {
                     .map((msg: Message) => msg._id);
                 
                 if (unreadMessages.length > 0 && socketRef.current) {
-                    console.log('👁️ Marking messages as read:', unreadMessages);
                     socketRef.current.emit('mark_as_read', {
                         messageIds: unreadMessages,
                         userId: auth.user.id
                     });
                 }
-            } else {
-                console.error('❌ Failed to load conversation:', data);
             }
         } catch (error) {
-            console.error('❌ Failed to load conversation:', error);
+            console.error('Failed to load conversation:', error);
         }
     };
 
@@ -301,13 +260,13 @@ export default function Messages({ auth }: MessagesProps) {
             <Head title="Messages" />
             
             {/* Page Header */}
-            <div className="bg-white dark:bg-gray-800 shadow">
-                <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-                    <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Messages</h1>
+            <div className="bg-white dark:bg-gray-800 shadow-sm">
+                <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Messages</h1>
                 </div>
             </div>
 
-            <div className="py-12">
+            <div className="py-6">
                 <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
                     <div className="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                         <div className="flex h-[600px]">
@@ -330,25 +289,16 @@ export default function Messages({ auth }: MessagesProps) {
                                 
                                 <div className="overflow-y-auto h-full">
                                     {conversations.length === 0 ? (
-                                        <div className="p-4 text-center text-gray-500">
-                                            <div className="mb-2">No conversations yet</div>
-                                            <div className="text-xs mb-2">
-                                                Vendor ID: {auth.user.id}<br/>
-                                                Name: {auth.user.name}<br/>
-                                                Type: {auth.user.user_type}<br/>
-                                                Socket: {connected ? '🟢 Connected' : '🔴 Disconnected'}
-                                            </div>
-                                            {lastApiResponse && (
-                                                <div className="text-xs mb-2 p-2 bg-gray-100 dark:bg-gray-700 rounded">
-                                                    <strong>Last API Response:</strong><br/>
-                                                    {JSON.stringify(lastApiResponse, null, 2)}
-                                                </div>
-                                            )}
+                                        <div className="p-8 text-center text-gray-500">
+                                            <MessageSquare size={48} className="mx-auto mb-4 text-gray-300" />
+                                            <div className="text-lg font-medium mb-2">No conversations yet</div>
+                                            <p className="text-sm mb-4">When customers message you, their conversations will appear here.</p>
                                             <button
                                                 onClick={loadConversations}
-                                                className="mt-2 px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
+                                                className="px-4 py-2 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600 transition-colors flex items-center space-x-2 mx-auto"
                                             >
-                                                Refresh
+                                                <RefreshCw size={16} />
+                                                <span>Check for Messages</span>
                                             </button>
                                         </div>
                                     ) : (
