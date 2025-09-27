@@ -66,7 +66,7 @@ app.use((req, res, next) => {
 });
 
 // MongoDB connection
-mongoose.connect('mongodb+srv://grafrafraftorres28:y33CwzAkoHffENbQ@cluster0.0c5qorv.mongodb.net/market_spaze_messaging?retryWrites=true&w=majority&appName=Cluster0')
+mongoose.connect('')
 .then(() => console.log('✅ Connected to MongoDB'))
 .catch(err => console.log('❌ MongoDB error:', err));
 
