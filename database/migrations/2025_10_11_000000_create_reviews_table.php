@@ -78,7 +78,7 @@ return new class extends Migration
             $table->softDeletes(); // Allow soft deletion but keep for analytics
             
             // INDEXES for performance
-            $table->index(['reviewable_type', 'reviewable_id']); // Find all reviews for an item
+            // Note: morphs() already creates index for reviewable_type and reviewable_id
             $table->index('user_id'); // Find all reviews by a user
             $table->index('overall_rating'); // Filter by rating
             $table->index('verified_purchase'); // Filter verified reviews
