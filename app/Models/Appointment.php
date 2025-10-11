@@ -91,6 +91,12 @@ class Appointment extends Model
         return $this->belongsTo(User::class);
     }
 
+    // Alias for user relationship (for backwards compatibility)
+    public function customer()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
     public function vendorStore()
     {
         return $this->belongsTo(VendorStore::class);
