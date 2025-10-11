@@ -50,12 +50,11 @@ return new class extends Migration
         // ================================================
         // Separate and detailed feedback for rider performance
         Schema::table('deliveries', function (Blueprint $table) {
-            // Rename existing columns for clarity
-            $table->renameColumn('customer_rating', 'delivery_overall_rating');
-            $table->renameColumn('customer_feedback', 'delivery_overall_feedback');
+            // Keep existing columns, add new ones
+            // customer_rating and customer_feedback remain as-is
             
             // Add detailed rider-specific ratings
-            $table->integer('rider_rating')->nullable()->after('delivery_overall_feedback')
+            $table->integer('rider_rating')->nullable()->after('customer_feedback')
                 ->comment('Specific rating for rider performance (1-5)');
             
             $table->text('rider_feedback')->nullable()->after('rider_rating')
@@ -98,12 +97,11 @@ return new class extends Migration
         // ================================================
         // Add more detailed service feedback
         Schema::table('appointments', function (Blueprint $table) {
-            // Rename for clarity
-            $table->renameColumn('customer_rating', 'service_overall_rating');
-            $table->renameColumn('customer_feedback', 'service_overall_feedback');
+            // Keep existing columns, add new ones
+            // customer_rating and customer_feedback remain as-is
             
             // Add detailed service ratings
-            $table->integer('service_quality_rating')->nullable()->after('service_overall_feedback')
+            $table->integer('service_quality_rating')->nullable()->after('feedback_submitted_at')
                 ->comment('Quality of service provided (1-5)');
             
             $table->integer('vendor_professionalism_rating')->nullable()->after('service_quality_rating')
@@ -270,9 +268,7 @@ return new class extends Migration
                 'review_images',
                 'review_title',
             ]);
-            
-            $table->renameColumn('service_overall_rating', 'customer_rating');
-            $table->renameColumn('service_overall_feedback', 'customer_feedback');
+            // No renaming needed since we didn't rename in up()
         });
         
         Schema::table('deliveries', function (Blueprint $table) {
@@ -289,9 +285,7 @@ return new class extends Migration
                 'rider_feedback_submitted_at',
                 'delivery_issues',
             ]);
-            
-            $table->renameColumn('delivery_overall_rating', 'customer_rating');
-            $table->renameColumn('delivery_overall_feedback', 'customer_feedback');
+            // No renaming needed since we didn't rename in up()
         });
         
         Schema::table('order_items', function (Blueprint $table) {
